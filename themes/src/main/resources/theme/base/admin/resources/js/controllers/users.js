@@ -1432,7 +1432,8 @@ module.controller('LDAPUserStorageCtrl', function($scope, $location, Notificatio
 
     $scope.authTypes = [
         { "id": "none", "name": "none" },
-        { "id": "simple", "name": "simple" }
+        { "id": "simple", "name": "simple" },
+        { "id": "EXTERNAL", "name": "SASL EXTERNAL" }
     ];
 
     $scope.searchScopes = [
@@ -1622,6 +1623,16 @@ module.controller('LDAPUserStorageCtrl', function($scope, $location, Notificatio
         $scope.changed = true;
     });
 
+    $scope.$watch("instance.config['authType'][0]", function (newVal, oldVal) {
+        if (oldVal == newVal) {
+            return;
+        }
+
+        if (newVal == 'EXTERNAL') {
+            $scope.instance.config['startTls'][0] = 'true';
+            $scope.changed = true;
+        }
+    });
 
     $scope.save = function() {
         $scope.changed = false;
