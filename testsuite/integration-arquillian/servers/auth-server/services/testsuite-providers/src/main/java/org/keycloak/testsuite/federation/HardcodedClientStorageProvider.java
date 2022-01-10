@@ -84,11 +84,32 @@ public class HardcodedClientStorageProvider implements ClientStorageProvider, Cl
             Thread.sleep(5000l);
         } catch (InterruptedException ex) {
             Logger.getLogger(HardcodedClientStorageProvider.class).warn(ex.getCause());
+            return Stream.empty();
         }
         if (clientId != null && this.clientId.toLowerCase().contains(clientId.toLowerCase())) {
             return Stream.of(new ClientAdapter(realm));
         }
         return Stream.empty();
+    }
+
+    @Override
+    public Stream<ClientModel> searchClientsByAttributes(RealmModel realm, Map<String, String> attributes, Integer firstResult, Integer maxResults) {
+        return Stream.empty();
+    }
+
+    @Override
+    public Map<String, ClientScopeModel> getClientScopes(RealmModel realm, ClientModel client, boolean defaultScope) {
+        if (defaultScope) {
+                ClientScopeModel rolesScope = KeycloakModelUtils.getClientScopeByName(realm, OIDCLoginProtocolFactory.ROLES_SCOPE);
+                ClientScopeModel webOriginsScope = KeycloakModelUtils.getClientScopeByName(realm, OIDCLoginProtocolFactory.WEB_ORIGINS_SCOPE);
+                return Arrays.asList(rolesScope, webOriginsScope)
+                        .stream()
+                        .collect(Collectors.toMap(ClientScopeModel::getName, clientScope -> clientScope));
+
+            } else {
+                ClientScopeModel offlineScope = KeycloakModelUtils.getClientScopeByName(realm, "offline_access");
+                return Collections.singletonMap("offline_access", offlineScope);
+            }
     }
 
     public class ClientAdapter extends AbstractReadOnlyClientStorageAdapter {
@@ -240,18 +261,8 @@ public class HardcodedClientStorageProvider implements ClientStorageProvider, Cl
         }
 
         @Override
-        public Map<String, ClientScopeModel> getClientScopes(boolean defaultScope, boolean filterByProtocol) {
-            if (defaultScope) {
-                ClientScopeModel rolesScope = KeycloakModelUtils.getClientScopeByName(realm, OIDCLoginProtocolFactory.ROLES_SCOPE);
-                ClientScopeModel webOriginsScope = KeycloakModelUtils.getClientScopeByName(realm, OIDCLoginProtocolFactory.WEB_ORIGINS_SCOPE);
-                return Arrays.asList(rolesScope, webOriginsScope)
-                        .stream()
-                        .collect(Collectors.toMap(ClientScopeModel::getName, clientScope -> clientScope));
-
-            } else {
-                ClientScopeModel offlineScope = KeycloakModelUtils.getClientScopeByName(realm, "offline_access");
-                return Collections.singletonMap("offline_access", offlineScope);
-            }
+        public Map<String, ClientScopeModel> getClientScopes(boolean defaultScope) {
+            return session.clients().getClientScopes(getRealm(), this, defaultScope);
         }
 
         @Override
@@ -260,8 +271,8 @@ public class HardcodedClientStorageProvider implements ClientStorageProvider, Cl
         }
 
         @Override
-        public Set<ProtocolMapperModel> getProtocolMappers() {
-            return Collections.EMPTY_SET;
+        public Stream<ProtocolMapperModel> getProtocolMappersStream() {
+            return Stream.empty();
         }
 
         @Override
@@ -285,8 +296,8 @@ public class HardcodedClientStorageProvider implements ClientStorageProvider, Cl
         }
 
         @Override
-        public Set<RoleModel> getRealmScopeMappings() {
-            return Collections.EMPTY_SET;
+        public Stream<RoleModel> getRealmScopeMappingsStream() {
+            return Stream.empty();
         }
 
         @Override

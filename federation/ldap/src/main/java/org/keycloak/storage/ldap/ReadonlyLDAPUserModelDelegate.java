@@ -17,7 +17,10 @@
 
 package org.keycloak.storage.ldap;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.keycloak.models.UserModel;
 import org.keycloak.models.utils.UserModelDelegate;
@@ -30,7 +33,7 @@ import org.keycloak.storage.ReadOnlyException;
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
  * @version $Revision: 1 $
  */
-public class ReadonlyLDAPUserModelDelegate extends UserModelDelegate implements UserModel {
+public class ReadonlyLDAPUserModelDelegate extends UserModelDelegate {
 
     public ReadonlyLDAPUserModelDelegate(UserModel delegate) {
         super(delegate);
@@ -38,36 +41,50 @@ public class ReadonlyLDAPUserModelDelegate extends UserModelDelegate implements 
 
     @Override
     public void setUsername(String username) {
-        throw new ReadOnlyException("Federated storage is not writable");
+        if (!Objects.equals(getUsername(), username)) {
+            throw new ReadOnlyException("Federated storage is not writable");
+        }
     }
 
     @Override
     public void setLastName(String lastName) {
-        throw new ReadOnlyException("Federated storage is not writable");
+        if (!Objects.equals(getLastName(), lastName)) {
+            throw new ReadOnlyException("Federated storage is not writable");
+        }
     }
 
     @Override
     public void setFirstName(String first) {
-        throw new ReadOnlyException("Federated storage is not writable");
+        if (!Objects.equals(getFirstName(), first)) {
+            throw new ReadOnlyException("Federated storage is not writable");
+        }
     }
 
     @Override
     public void setEmail(String email) {
-        throw new ReadOnlyException("Federated storage is not writable");
+        if (!Objects.equals(getEmail(), email)) {
+            throw new ReadOnlyException("Federated storage is not writable");
+        }
     }
 
     @Override
     public void setSingleAttribute(String name, String value) {
-        throw new ReadOnlyException("Federated storage is not writable");
+        if (!Objects.equals(getAttributeStream(name).collect(Collectors.toList()), Collections.singletonList(value))) {
+            throw new ReadOnlyException("Federated storage is not writable");
+        }
     }
 
     @Override
     public void setAttribute(String name, List<String> values) {
-        throw new ReadOnlyException("Federated storage is not writable");
+        if (!Objects.equals(getAttributeStream(name).collect(Collectors.toList()), values)) {
+            throw new ReadOnlyException("Federated storage is not writable");
+        }
     }
 
     @Override
     public void removeAttribute(String name) {
-        throw new ReadOnlyException("Federated storage is not writable");
+        if (getAttributeStream(name).count() > 0) {
+            throw new ReadOnlyException("Federated storage is not writable");
+        }
     }
 }

@@ -16,15 +16,18 @@
  */
 package org.keycloak.models.map.client;
 
+import java.util.Collections;
+import java.util.Map;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.ClientScopeModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
 import org.keycloak.models.map.common.AbstractEntity;
+import org.keycloak.models.utils.RoleUtils;
+
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -48,17 +51,27 @@ public abstract class AbstractClientModel<E extends AbstractEntity> implements C
 
     @Override
     public void addClientScopes(Set<ClientScopeModel> clientScopes, boolean defaultScope) {
-        for (ClientScopeModel cs : clientScopes) {
-            addClientScope(cs, defaultScope);
-        }
+        session.clients().addClientScopes(getRealm(), this, clientScopes, defaultScope);
     }
 
     @Override
-    public Set<RoleModel> getRealmScopeMappings() {
-        String realmId = realm.getId();
-        return getScopeMappingsStream()
-          .filter(rm -> Objects.equals(rm.getContainerId(), realmId))
-          .collect(Collectors.toSet());
+    public void addClientScope(ClientScopeModel clientScope, boolean defaultScope) {
+        addClientScopes(Collections.singleton(clientScope), defaultScope);
+    }
+
+    @Override
+    public void removeClientScope(ClientScopeModel clientScope) {
+        session.clients().removeClientScope(getRealm(), this, clientScope);
+    }
+
+    @Override
+    public Map<String, ClientScopeModel> getClientScopes(boolean defaultScope) {
+        return session.clients().getClientScopes(getRealm(), this, defaultScope);
+    }
+
+    @Override
+    public Stream<RoleModel> getRealmScopeMappingsStream() {
+        return getScopeMappingsStream().filter(r -> RoleUtils.isRealmRole(r, realm));
     }
 
     @Override

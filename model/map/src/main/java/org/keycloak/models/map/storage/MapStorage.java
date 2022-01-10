@@ -16,30 +16,30 @@
  */
 package org.keycloak.models.map.storage;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
+import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.map.common.AbstractEntity;
 
 /**
+ * Implementation of this interface interacts with a persistence storage storing various entities, e.g. users, realms.
  *
  * @author hmlnarik
+ * @param <V> Type of the stored values that contains all the data stripped of session state. In other words, in the entities
+ *            there are only IDs and mostly primitive types / {@code String}, never references to {@code *Model} instances.
+ *            See the {@code Abstract*Entity} classes in this module.
+ * @param <M> Type of the {@code *Model} corresponding to the stored value, e.g. {@code UserModel}. This is used for
+ *            filtering via model fields in {@link ModelCriteriaBuilder} which is necessary to abstract from physical
+ *            layout and thus to support no-downtime upgrade.
  */
-public interface MapStorage<K, V> {
-
-    V get(K key);
-
-    V put(K key, V value);
-
-    V putIfAbsent(K key, V value);
-
-    V remove(K key);
-
-    V replace(K key, V value);
-
-    Set<K> keySet();
-
-    Set<Map.Entry<K,V>> entrySet();
-
-    Collection<V> values();
+public interface MapStorage<V extends AbstractEntity, M> {
+    
+    /**
+     * Creates a {@code MapKeycloakTransaction} object that tracks a new transaction related to this storage.
+     * In case of JPA or similar, the transaction object might be supplied by the container (via JTA) or
+     * shared same across storages accessing the same database within the same session; in other cases
+     * (e.g. plain map) a separate transaction handler might be created per each storage.
+     *
+     * @return See description. Never returns {@code null}
+     */
+    MapKeycloakTransaction<V, M> createTransaction(KeycloakSession session);
 
 }
