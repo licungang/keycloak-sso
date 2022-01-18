@@ -18,6 +18,8 @@
 package org.keycloak.truststore;
 
 import org.jboss.logging.Logger;
+import org.keycloak.keystore.KeyStoreProvider;
+import org.keycloak.keystore.KeyStoreProviderSingleton;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -50,7 +52,7 @@ public class SSLSocketFactory extends javax.net.ssl.SSLSocketFactory implements 
         TruststoreProvider provider = TruststoreProviderSingleton.get();
         javax.net.ssl.SSLSocketFactory sf = null;
         if (provider != null) {
-            sf = new JSSETruststoreConfigurator(provider).getSSLSocketFactory();
+            sf = new JSSETruststoreConfigurator(provider, KeyStoreProviderSingleton.get()).getSSLSocketFactory();
         }
 
         if (sf == null) {

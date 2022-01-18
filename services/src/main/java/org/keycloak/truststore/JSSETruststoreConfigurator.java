@@ -19,6 +19,8 @@ package org.keycloak.truststore;
 
 import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
+import org.keycloak.keystore.KeyStoreProvider;
+import org.keycloak.keystore.KeyStoreProviderFactory;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 
@@ -38,7 +40,8 @@ import javax.net.ssl.TrustManagerFactory;
  */
 public class JSSETruststoreConfigurator {
 
-    private TruststoreProvider provider;
+    private TruststoreProvider tsProvider;
+    private KeyStoreProvider ksProvider;
     private volatile javax.net.ssl.SSLSocketFactory sslFactory;
     private volatile TrustManager[] tm;
 
@@ -46,19 +49,32 @@ public class JSSETruststoreConfigurator {
         KeycloakSessionFactory factory = session.getKeycloakSessionFactory();
         TruststoreProviderFactory truststoreFactory = (TruststoreProviderFactory) factory.getProviderFactory(TruststoreProvider.class, "file");
 
-        provider = truststoreFactory.create(session);
-        if (provider != null && provider.getTruststore() == null) {
-            provider = null;
+        tsProvider = truststoreFactory.create(session);
+        if (tsProvider != null && tsProvider.getTruststore() == null) {
+            tsProvider = null;
+        }
+
+        KeyStoreProviderFactory kmpf = (KeyStoreProviderFactory) factory.getProviderFactory(KeyStoreProvider.class, "file");
+        ksProvider = kmpf.create(session);
+        if (ksProvider != null && ksProvider.getKeyManagers() == null) {
+            ksProvider = null;
         }
     }
 
-    public JSSETruststoreConfigurator(TruststoreProvider provider) {
-        this.provider = provider;
+    public JSSETruststoreConfigurator(TruststoreProvider tsProvider, KeyStoreProvider ksProvider) {
+        this.tsProvider = tsProvider;
+        this.ksProvider = ksProvider;
     }
 
     public javax.net.ssl.SSLSocketFactory getSSLSocketFactory() {
-        if (provider == null) {
+        if (tsProvider == null) {
             return null;
+        }
+
+
+        KeyManager[] kms = null;
+        if (ksProvider != null) {
+            kms = ksProvider.getKeyManagers();
         }
 
         if (sslFactory == null) {
@@ -66,10 +82,7 @@ public class JSSETruststoreConfigurator {
                 if (sslFactory == null) {
                     try {
                         SSLContext sslctx = SSLContext.getInstance("TLS");
-                        // Construct default keyManager explicitely, since passing null as keyManager to SSLSocketFactory results in no
-                        // keymanager at all in Oracle JDK (unlike IBM JDK).  If not doing this, it would be impossible to use client
-                        // certificate based authentication for LDAP when TrustStore SPI is enabled.
-                        sslctx.init(getDefaultKeyManager(), getTrustManagers(), null);
+                        sslctx.init(kms, getTrustManagers(), null);
                         sslFactory = sslctx.getSocketFactory();
                     } catch (Exception e) {
                         throw new RuntimeException("Failed to initialize SSLContext: ", e);
@@ -81,7 +94,7 @@ public class JSSETruststoreConfigurator {
     }
 
     public TrustManager[] getTrustManagers() {
-        if (provider == null) {
+        if (tsProvider == null) {
             return null;
         }
 
@@ -91,7 +104,7 @@ public class JSSETruststoreConfigurator {
                     TrustManagerFactory tmf = null;
                     try {
                         tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                        tmf.init(provider.getTruststore());
+                        tmf.init(tsProvider.getTruststore());
                         tm = tmf.getTrustManagers();
                     } catch (Exception e) {
                         throw new RuntimeException("Failed to initialize TrustManager: ", e);
@@ -103,11 +116,11 @@ public class JSSETruststoreConfigurator {
     }
 
     public HostnameVerifier getHostnameVerifier() {
-        if (provider == null) {
+        if (tsProvider == null) {
             return null;
         }
 
-        HostnameVerificationPolicy policy = provider.getPolicy();
+        HostnameVerificationPolicy policy = tsProvider.getPolicy();
         switch (policy) {
             case ANY:
                 return new HostnameVerifier() {
@@ -126,32 +139,7 @@ public class JSSETruststoreConfigurator {
     }
 
     public TruststoreProvider getProvider() {
-        return provider;
+        return tsProvider;
     }
 
-    private KeyManager[] getDefaultKeyManager() throws Exception {
-        String keyStore = System.getProperty("javax.net.ssl.keyStore");
-        String keyStoreType = System.getProperty("javax.net.ssl.keyStoreType", KeyStore.getDefaultType());
-        String keyStoreProvider = System.getProperty("javax.net.ssl.keyStoreProvider");
-        String keyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword");
-
-        KeyStore ks = null;
-        if (keyStoreProvider == null) {
-            ks = KeyStore.getInstance(keyStoreType);
-        } else {
-            ks = KeyStore.getInstance(keyStoreType, keyStoreProvider);
-        }
-
-        if (keyStore != null) {
-            try (FileInputStream fs = new FileInputStream(keyStore)) {
-                ks.load(fs, keyStorePassword.toCharArray());
-            }
-
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(ks, keyStorePassword.toCharArray());
-
-            return kmf.getKeyManagers();
-        }
-        return null;
-    }
 }

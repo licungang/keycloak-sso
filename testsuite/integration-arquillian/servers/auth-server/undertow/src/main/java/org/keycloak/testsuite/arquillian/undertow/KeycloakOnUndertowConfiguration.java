@@ -111,14 +111,6 @@ public class KeycloakOnUndertowConfiguration extends UndertowContainerConfigurat
         return keycloakConfigPropertyOverridesMap;
     }
 
-    public void setKeyStore(String keyStore) {
-        System.setProperty("javax.net.ssl.keyStore", keyStore);
-    }
-
-    public void setKeyStorePassword(String keyStorePassword) {
-        System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
-    }
-
     @Override
     public void validate() throws ConfigurationException {
         super.validate();

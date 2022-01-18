@@ -94,8 +94,8 @@ public class FileTruststoreProviderFactory implements TruststoreProviderFactory 
         }
 
         TruststoreCertificatesLoader certsLoader = new TruststoreCertificatesLoader(truststore);
-        provider = new FileTruststoreProvider(truststore, verificationPolicy, Collections.unmodifiableMap(certsLoader.trustedRootCerts)
-                , Collections.unmodifiableMap(certsLoader.intermediateCerts));
+        provider = new FileTruststoreProvider(truststore, verificationPolicy, Collections.unmodifiableMap(certsLoader.trustedRootCerts),
+                Collections.unmodifiableMap(certsLoader.intermediateCerts));
         TruststoreProviderSingleton.set(provider);
         log.debug("File truststore provider initialized: " + new File(storepath).getAbsolutePath());
     }

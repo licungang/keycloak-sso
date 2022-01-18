@@ -23,6 +23,8 @@ import java.util.Map;
 import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.x500.X500Principal;
 
+import org.keycloak.keystore.KeyStoreProviderSingleton;
+
 /**
  * @author <a href="mailto:mstrukel@redhat.com">Marko Strukelj</a>
  */
@@ -40,7 +42,7 @@ public class FileTruststoreProvider implements TruststoreProvider {
         this.rootCertificates = rootCertificates;
         this.intermediateCertificates = intermediateCertificates;
 
-        SSLSocketFactory jsseSSLSocketFactory = new JSSETruststoreConfigurator(this).getSSLSocketFactory();
+        SSLSocketFactory jsseSSLSocketFactory = new JSSETruststoreConfigurator(this, KeyStoreProviderSingleton.get()).getSSLSocketFactory();
         this.sslSocketFactory = (jsseSSLSocketFactory != null) ? jsseSSLSocketFactory : (SSLSocketFactory) javax.net.ssl.SSLSocketFactory.getDefault();
     }
 
