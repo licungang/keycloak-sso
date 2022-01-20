@@ -212,6 +212,8 @@
         <!-- Version suffix that is appended to directories. Default is the maven GAV version but this can be edited to use a short form version -->
         <server.output.dir.version>${project.version}</server.output.dir.version>
 
+        <!-- Frontend -->
+        <node.version>v16.13.1</node.version>
     </properties>
 
     <url>http://keycloak.org</url>
@@ -2037,6 +2039,19 @@
             <id>jboss-release</id>
             <modules>
                 <module>distribution</module>
+            </modules>
+        </profile>
+
+        <profile>
+            <id>operator</id>
+            <activation>
+                <jdk>[11,)</jdk>
+                <property>
+                    <name>operator</name>
+                </property>
+            </activation>
+            <modules>
+                <module>operator</module>
             </modules>
         </profile>
 
