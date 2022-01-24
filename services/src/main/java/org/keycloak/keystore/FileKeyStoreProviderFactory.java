@@ -41,7 +41,7 @@ public class FileKeyStoreProviderFactory implements KeyStoreProviderFactory {
     public void init(Config.Scope config) {
         String keyStorePath = config.get("file");
         String keyStorePassword = config.get("password");
-        String cacheTtl = config.get("cacheTtl");
+        String cacheTtl = config.get("cache-ttl");
 
         if (keyStorePath == null && keyStorePassword == null) {
             log.debug("File keystore provider is disabled");

@@ -277,7 +277,7 @@
         "file": {
             "file": "${keycloak.keystore.file:target/dependency/keystore/keycloak.jks}",
             "password": "${keycloak.keystore.password:secret}",
-            "cacheTtl": "${keycloak.keystore.cacheTtl:}"
+            "cache-ttl": "${keycloak.keystore.cacheTtl:}"
         }
     },
 

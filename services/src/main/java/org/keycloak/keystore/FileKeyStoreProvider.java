@@ -23,8 +23,6 @@ import java.time.Duration;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 
-import org.keycloak.keystore.KeyStoreProvider;
-
 public class FileKeyStoreProvider implements KeyStoreProvider {
 
     private final String keyStorePath;
