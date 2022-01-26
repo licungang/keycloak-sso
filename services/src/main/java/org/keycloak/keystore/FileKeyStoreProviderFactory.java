@@ -25,6 +25,7 @@ import org.jboss.logging.Logger;
 import org.keycloak.Config;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.truststore.SSLSocketFactory;
 
 public class FileKeyStoreProviderFactory implements KeyStoreProviderFactory {
 
@@ -68,7 +69,7 @@ public class FileKeyStoreProviderFactory implements KeyStoreProviderFactory {
         }
 
         provider = new FileKeyStoreProvider(keyStorePath, keyStorePassword, ttl);
-        KeyStoreProviderSingleton.set(provider);
+        SSLSocketFactory.set(provider);
         log.debug("File keystore provider initialized with file=" + new File(keyStorePath).getAbsolutePath() +
             ", cacheTtl=" + (cacheTtl == null ? "<not set>" : cacheTtl));
     }

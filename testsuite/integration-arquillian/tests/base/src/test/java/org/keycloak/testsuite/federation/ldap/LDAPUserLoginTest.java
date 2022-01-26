@@ -341,7 +341,7 @@ public class LDAPUserLoginTest extends AbstractLDAPTest {
         runLDAPLoginTest();
     }
 
-    // Check LDAP federated user (in)valid login(s) with SASL EXTERNAL authenticaiton & startTLS encryption enabled
+    // Check LDAP federated user (in)valid login(s) with SASL EXTERNAL authentication & startTLS encryption enabled
     @Test
     @LDAPConnectionParameters(bindType=LDAPConnectionParameters.BindType.EXTERNAL, encryption=LDAPConnectionParameters.Encryption.STARTTLS)
     public void loginLDAPUserAuthenticationSASLExternalEncryptionStartTLS() {
