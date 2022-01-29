@@ -80,6 +80,7 @@ public class LDAPEmbeddedServer {
     public static final String PROPERTY_SET_CONFIDENTIALITY_REQUIRED = "setConfidentialityRequired";
     public static final String PROPERTY_ADMIN_CERTIFICATE_KEYSTORE = "adminCertificateKeyStore";
     public static final String PROPERTY_ADMIN_CERTIFICATE_KEYSTORE_PASSWORD = "adminCredentialKeyStorePassword";
+    public static final String PROPERTY_REQUIRE_CLIENT_CERTIFICATE = "requireClientCertificate";
 
     private static final String DEFAULT_BASE_DN = "dc=keycloak,dc=org";
     private static final String DEFAULT_BIND_HOST = "localhost";
@@ -111,6 +112,7 @@ public class LDAPEmbeddedServer {
     protected String certPassword;
     protected String adminCertificateKeyStore;
     protected String adminCertificateKeyStorePassword;
+    protected boolean requireClientCertificate = false;
 
     protected DirectoryService directoryService;
     protected LdapServer ldapServer;
@@ -170,6 +172,7 @@ public class LDAPEmbeddedServer {
         this.certPassword = readProperty(PROPERTY_CERTIFICATE_PASSWORD, null);
         this.adminCertificateKeyStore = readProperty(PROPERTY_ADMIN_CERTIFICATE_KEYSTORE, null);
         this.adminCertificateKeyStorePassword = readProperty(PROPERTY_ADMIN_CERTIFICATE_KEYSTORE_PASSWORD, null);
+        this.requireClientCertificate = Boolean.valueOf(readProperty(PROPERTY_REQUIRE_CLIENT_CERTIFICATE, "false"));
     }
 
     protected String readProperty(String propertyName, String defaultValue) {
@@ -299,8 +302,10 @@ public class LDAPEmbeddedServer {
             if (enableSSL) {
                 Transport ldaps = new TcpTransport(this.bindHost, this.bindLdapsPort, 3, 50);
                 ldaps.setEnableSSL(true);
-                ((TcpTransport)ldaps).setWantClientAuth(true);
-                ((TcpTransport)ldaps).setNeedClientAuth(true);
+                if (requireClientCertificate) {
+                    ((TcpTransport)ldaps).setWantClientAuth(true);
+                    ((TcpTransport)ldaps).setNeedClientAuth(true);
+                }
                 ldapServer.addTransports( ldaps );
                 if (ldaps.isSSLEnabled()) {
                     log.info("Enabled SSL support on the LDAP server.");
@@ -319,9 +324,11 @@ public class LDAPEmbeddedServer {
                     }
                 }
             }
-            // enable SASL EXTERNAL authentication method for client certificate based authenticatoin
-            ldapServer.addSaslMechanismHandler(SupportedSaslMechanisms.EXTERNAL, new CertificateMechanismHandler());
-            ((TcpTransport)ldap).setWantClientAuth(true);
+            // Enable SASL EXTERNAL authentication method for client certificate based authentication.
+            if (requireClientCertificate) {
+                ldapServer.addSaslMechanismHandler(SupportedSaslMechanisms.EXTERNAL, new CertificateMechanismHandler());
+                ((TcpTransport)ldap).setWantClientAuth(true);
+            }
         }
 
         // Require the LDAP server to accept only encrypted connections if confidentiality requested

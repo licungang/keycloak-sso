@@ -153,6 +153,7 @@ public class LDAPRule extends ExternalResource {
                     serverProperties.setProperty(LDAPEmbeddedServer.PROPERTY_ENABLE_ACCESS_CONTROL, "true");
                     serverProperties.setProperty(LDAPEmbeddedServer.PROPERTY_ADMIN_CERTIFICATE_KEYSTORE, new File(PROJECT_BUILD_DIRECTORY, PRIVATE_KEY).getAbsolutePath());
                     serverProperties.setProperty(LDAPEmbeddedServer.PROPERTY_ADMIN_CERTIFICATE_KEYSTORE_PASSWORD, "secret");
+                    serverProperties.setProperty(LDAPEmbeddedServer.PROPERTY_REQUIRE_CLIENT_CERTIFICATE, "true");
                     clientConfigOverrides.put(LDAPConstants.AUTH_TYPE, LDAPConstants.AUTH_TYPE_EXTERNAL);
                     break;
             }
