@@ -17,11 +17,11 @@
 
 package org.keycloak.quarkus.deployment;
 
-import static org.keycloak.quarkus.runtime.configuration.ConfigArgsConfigSource.CLI_ARGS;
 import static org.keycloak.quarkus.runtime.configuration.Configuration.getPropertyNames;
+import static org.keycloak.quarkus.runtime.configuration.MicroProfileConfigProvider.NS_QUARKUS;
+import static org.keycloak.quarkus.runtime.configuration.QuarkusPropertiesConfigSource.QUARKUS_PROPERTY_ENABLED;
 import static org.keycloak.quarkus.runtime.storage.database.jpa.QuarkusJpaConnectionProviderFactory.QUERY_PROPERTY_PREFIX;
 import static org.keycloak.connections.jpa.util.JpaUtils.loadSpecificNamedQueries;
-import static org.keycloak.quarkus.runtime.configuration.MicroProfileConfigProvider.NS_KEYCLOAK;
 import static org.keycloak.representations.provider.ScriptProviderDescriptor.AUTHENTICATORS;
 import static org.keycloak.representations.provider.ScriptProviderDescriptor.MAPPERS;
 import static org.keycloak.representations.provider.ScriptProviderDescriptor.POLICIES;
@@ -70,6 +70,7 @@ import io.quarkus.runtime.LaunchMode;
 import io.quarkus.smallrye.health.runtime.SmallRyeHealthHandler;
 import io.quarkus.vertx.http.deployment.NonApplicationRootPathBuildItem;
 import io.quarkus.vertx.http.deployment.RouteBuildItem;
+import io.smallrye.config.ConfigValue;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import org.hibernate.cfg.AvailableSettings;
@@ -82,7 +83,9 @@ import org.jboss.logging.Logger;
 import org.jboss.resteasy.plugins.server.servlet.ResteasyContextParameters;
 import org.jboss.resteasy.spi.ResteasyDeployment;
 import org.keycloak.Config;
+import org.keycloak.quarkus.runtime.QuarkusProfile;
 import org.keycloak.quarkus.runtime.configuration.PersistedConfigSource;
+import org.keycloak.quarkus.runtime.configuration.QuarkusPropertiesConfigSource;
 import org.keycloak.quarkus.runtime.configuration.mappers.PropertyMapper;
 import org.keycloak.quarkus.runtime.configuration.mappers.PropertyMappers;
 import org.keycloak.quarkus.runtime.integration.jaxrs.QuarkusKeycloakApplication;
@@ -128,6 +131,7 @@ import org.keycloak.url.DefaultHostnameProviderFactory;
 import org.keycloak.url.FixedHostnameProviderFactory;
 import org.keycloak.url.RequestHostnameProviderFactory;
 import org.keycloak.util.JsonSerialization;
+import org.keycloak.vault.FilesPlainTextVaultProviderFactory;
 
 class KeycloakProcessor {
 
@@ -147,7 +151,8 @@ class KeycloakProcessor {
             LiquibaseJpaUpdaterProviderFactory.class,
             DefaultHostnameProviderFactory.class,
             FixedHostnameProviderFactory.class,
-            RequestHostnameProviderFactory.class);
+            RequestHostnameProviderFactory.class,
+            FilesPlainTextVaultProviderFactory.class);
 
     static {
         DEPLOYEABLE_SCRIPT_PROVIDERS.put(AUTHENTICATORS, KeycloakProcessor::registerScriptAuthenticator);
@@ -240,7 +245,7 @@ class KeycloakProcessor {
     @Record(ExecutionTime.RUNTIME_INIT)
     @BuildStep
     KeycloakSessionFactoryPreInitBuildItem configureProviders(KeycloakRecorder recorder) {
-        Profile.setInstance(recorder.createProfile());
+        Profile.setInstance(new QuarkusProfile());
         Map<Spi, Map<Class<? extends Provider>, Map<String, Class<? extends ProviderFactory>>>> factories = new HashMap<>();
         Map<Class<? extends Provider>, String> defaultProviders = new HashMap<>();
         Map<String, ProviderFactory> preConfiguredProviders = new HashMap<>();
@@ -311,14 +316,24 @@ class KeycloakProcessor {
         Properties properties = new Properties();
 
         for (String name : getPropertyNames()) {
-            if (isNotPersistentProperty(name)) {
-                continue;
+            PropertyMapper mapper = PropertyMappers.getMapper(name);
+            ConfigValue value = null;
+
+            if (mapper == null) {
+                if (name.startsWith(NS_QUARKUS)) {
+                    value = Configuration.getConfigValue(name);
+
+                    if (!QuarkusPropertiesConfigSource.isSameSource(value)) {
+                        continue;
+                    }
+                }
+            } else if (mapper.isBuildTime()) {
+                name = mapper.getFrom();
+                value = Configuration.getConfigValue(name);
             }
 
-            Optional<String> value = Configuration.getOptionalValue(name);
-
-            if (value.isPresent()) {
-                properties.put(name, value.get());
+            if (value != null && value.getValue() != null) {
+                properties.put(name, value.getValue());
             }
         }
 
@@ -326,17 +341,14 @@ class KeycloakProcessor {
             properties.put(String.format("kc.provider.file.%s.last-modified", jar.getName()), String.valueOf(jar.lastModified()));
         }
 
+        properties.put(QUARKUS_PROPERTY_ENABLED, String.valueOf(QuarkusPropertiesConfigSource.getConfigurationFile() != null));
+
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             properties.store(outputStream, " Auto-generated, DO NOT change this file");
             resources.produce(new GeneratedResourceBuildItem(PersistedConfigSource.PERSISTED_PROPERTIES, outputStream.toByteArray()));
         } catch (Exception cause) {
             throw new RuntimeException("Failed to persist configuration", cause);
         }
-    }
-
-    private boolean isNotPersistentProperty(String name) {
-        // these properties are ignored from the build time properties as they are runtime-specific
-        return !name.startsWith(NS_KEYCLOAK) || "kc.home.dir".equals(name) || CLI_ARGS.equals(name);
     }
 
     /**
@@ -421,7 +433,14 @@ class KeycloakProcessor {
             Map<String, ProviderFactory> preConfiguredProviders) {
         Config.init(new MicroProfileConfigProvider());
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        ProviderManager pm = new ProviderManager(KeycloakDeploymentInfo.create().services(), classLoader);
+
+        KeycloakDeploymentInfo keycloakDeploymentInfo = KeycloakDeploymentInfo.create()
+                .name("classpath")
+                .services()
+                // .themes() // handling of .jar based themes is already supported by Keycloak.x
+                .themeResources();
+
+        ProviderManager pm = new ProviderManager(keycloakDeploymentInfo, classLoader);
         Map<Spi, Map<Class<? extends Provider>, Map<String, ProviderFactory>>> factories = new HashMap<>();
 
         for (Spi spi : pm.loadSpis()) {

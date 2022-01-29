@@ -35,7 +35,6 @@ import static picocli.CommandLine.Model.UsageMessageSpec.SECTION_KEY_COMMAND_LIS
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +50,6 @@ import org.keycloak.quarkus.runtime.cli.command.Build;
 import org.keycloak.quarkus.runtime.cli.command.Main;
 import org.keycloak.quarkus.runtime.cli.command.Start;
 import org.keycloak.quarkus.runtime.cli.command.StartDev;
-import org.keycloak.common.Profile;
 import org.keycloak.quarkus.runtime.configuration.ConfigArgsConfigSource;
 import org.keycloak.quarkus.runtime.configuration.PersistedConfigSource;
 import org.keycloak.quarkus.runtime.configuration.mappers.ConfigCategory;
@@ -78,7 +76,7 @@ public final class Picocli {
     public static void parseAndRun(List<String> cliArgs) {
         CommandLine cmd = createCommandLine(cliArgs);
 
-        if (Boolean.getBoolean("kc.config.rebuild-and-exit")) {
+        if (Environment.isRebuildCheck()) {
             runReAugmentationIfNeeded(cliArgs, cmd);
             Quarkus.asyncExit(cmd.getCommandSpec().exitCodeOnSuccess());
             return;
@@ -123,13 +121,6 @@ public final class Picocli {
             if(!isDevMode()) {
                 if (cmd != null) {
                     cmd.getOut().println("Changes detected in configuration. Updating the server image.");
-                    List<String> cliInput = getSanitizedCliInput();
-                    cmd.getOut()
-                            .printf("For an optional runtime and bypass this step, please run the '%s' command prior to starting the server:%n%n\t%s %s %s%n%n",
-                                    Build.NAME,
-                                    Environment.getCommand(),
-                                    Build.NAME,
-                                    String.join(" ", cliInput) + "\n");
                 }
             }
             return true;
@@ -144,12 +135,18 @@ public final class Picocli {
      * @return a list of potentially masked properties in CLI format, e.g. `--db-password=*******`
      * instead of the actual passwords value.
      */
-    private static List<String> getSanitizedCliInput() {
+    private static List<String> getSanitizedRuntimeCliOptions() {
         List<String> properties = new ArrayList<>();
 
         parseConfigArgs(new BiConsumer<String, String>() {
             @Override
             public void accept(String key, String value) {
+                PropertyMapper mapper = PropertyMappers.getMapper(key);
+
+                if (mapper != null && mapper.isBuildTime()) {
+                    return;
+                }
+
                 properties.add(key + "=" + formatValue(key, value));
             }
         });
@@ -176,7 +173,7 @@ public final class Picocli {
         cmd.execute(configArgsList.toArray(new String[0]));
 
         if(!isDevMode()) {
-            cmd.getOut().printf("Next time you run the server, just run:%n%n\t%s %s%n%n", Environment.getCommand(), Start.NAME);
+            cmd.getOut().printf("Next time you run the server, just run:%n%n\t%s %s %s%n%n", Environment.getCommand(), Start.NAME, String.join(" ", getSanitizedRuntimeCliOptions()));
         }
     }
 
@@ -241,6 +238,13 @@ public final class Picocli {
             String runtimeValue = getRuntimeProperty(propertyName).orElse(null);
 
             if (runtimeValue == null && isNotBlank(persistedValue)) {
+                PropertyMapper mapper = PropertyMappers.getMapper(propertyName);
+
+                if (mapper != null && persistedValue.equals(mapper.getDefaultValue())) {
+                    // same as default
+                    continue;
+                }
+
                 // probably because it was unset
                 return true;
             }
@@ -271,9 +275,9 @@ public final class Picocli {
                     .build());
         }
 
-        addOption(spec, Start.NAME, hasAutoBuildOption(cliArgs));
-        addOption(spec, StartDev.NAME, true);
-        addOption(spec, Build.NAME, true);
+        addOption(spec, Start.NAME, hasAutoBuildOption(cliArgs), true);
+        addOption(spec, StartDev.NAME, true, true);
+        addOption(spec, Build.NAME, true, hasAutoBuildOption(cliArgs));
 
         CommandLine cmd = new CommandLine(spec);
 
@@ -286,47 +290,19 @@ public final class Picocli {
         return cmd;
     }
 
-    private static void addOption(CommandSpec spec, String command, boolean includeBuildTime) {
+    private static void addOption(CommandSpec spec, String command, boolean includeBuildTime, boolean includeRuntime) {
         CommandSpec commandSpec = spec.subcommands().get(command).getCommandSpec();
-        List<PropertyMapper> mappers = new ArrayList<>(PropertyMappers.getRuntimeMappers());
+        List<PropertyMapper> mappers = new ArrayList<>();
+
+        if (includeRuntime) {
+            mappers.addAll(PropertyMappers.getRuntimeMappers());
+        }
 
         if (includeBuildTime) {
             mappers.addAll(PropertyMappers.getBuildTimeMappers());
-            addFeatureOptions(commandSpec);
         }
 
         addMappedOptionsToArgGroups(commandSpec, mappers);
-    }
-
-    private static void addFeatureOptions(CommandSpec commandSpec) {
-        ArgGroupSpec.Builder featureGroupBuilder = ArgGroupSpec.builder()
-                .heading(ConfigCategory.FEATURE.getHeading() + ":")
-                .order(ConfigCategory.FEATURE.getOrder())
-                .validate(false);
-
-        String previewName = Profile.Type.PREVIEW.name().toLowerCase();
-
-        featureGroupBuilder.addArg(OptionSpec.builder(new String[] {"-ft", "--features"})
-                .description("Enables all tech preview features.")
-                .paramLabel(previewName)
-                .completionCandidates(Collections.singleton(previewName))
-                .parameterConsumer(PropertyMapperParameterConsumer.INSTANCE)
-                .type(String.class)
-                .build());
-
-        List<String> expectedValues = asList("enabled", "disabled");
-
-        for (Profile.Feature feature : Profile.Feature.values()) {
-            featureGroupBuilder.addArg(OptionSpec.builder("--features-" + feature.name().toLowerCase())
-                    .description("Enables the " + feature.name() + " feature.")
-                    .paramLabel(String.join("|", expectedValues))
-                    .type(String.class)
-                    .parameterConsumer(PropertyMapperParameterConsumer.INSTANCE)
-                    .completionCandidates(expectedValues)
-                    .build());
-        }
-
-        commandSpec.addArgGroup(featureGroupBuilder.build());
     }
 
     private static void addMappedOptionsToArgGroups(CommandSpec cSpec, List<PropertyMapper> propertyMappers) {
