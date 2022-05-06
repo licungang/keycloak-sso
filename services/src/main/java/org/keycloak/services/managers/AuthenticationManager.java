@@ -1096,7 +1096,7 @@ public class AuthenticationManager {
             UserConsentModel grantedConsent = getEffectiveGrantedConsent(session, authSession);
 
             // See if any clientScopes need to be approved on consent screen
-            List<AuthorizationDetails> clientScopesToApprove = getClientScopesToApproveOnConsentScreen(grantedConsent, session);
+            List<AuthorizationDetails> clientScopesToApprove = getClientScopesToApproveOnConsentScreen(user, grantedConsent, session);
             if (!clientScopesToApprove.isEmpty()) {
                 return CommonClientSessionModel.Action.OAUTH_GRANT.name();
             }
@@ -1160,7 +1160,7 @@ public class AuthenticationManager {
 
             UserConsentModel grantedConsent = getEffectiveGrantedConsent(session, authSession);
 
-            List<AuthorizationDetails> clientScopesToApprove = getClientScopesToApproveOnConsentScreen(grantedConsent, session);
+            List<AuthorizationDetails> clientScopesToApprove = getClientScopesToApproveOnConsentScreen(user, grantedConsent, session);
 
             // Skip grant screen if everything was already approved by this user
             if (clientScopesToApprove.size() > 0) {
@@ -1187,10 +1187,10 @@ public class AuthenticationManager {
 
     }
 
-    private static List<AuthorizationDetails> getClientScopesToApproveOnConsentScreen(UserConsentModel grantedConsent, KeycloakSession session) {
+    private static List<AuthorizationDetails> getClientScopesToApproveOnConsentScreen(UserModel user, UserConsentModel grantedConsent, KeycloakSession session) {
         // Client Scopes to be displayed on consent screen
         List<AuthorizationDetails> clientScopesToDisplay = new LinkedList<>();
-
+        List<String> consentedScopes = UserConsentManager.getConsentedScopesStream(session, user, session.getContext().getClient()).collect(Collectors.toList());
         // AuthorizationDetails are going to be returned regardless of the Dynamic Scope feature state
         for (AuthorizationDetails authDetails : getClientScopeModelStream(session).collect(Collectors.toList())) {
             ClientScopeModel clientScope = authDetails.getClientScope();
@@ -1199,23 +1199,12 @@ public class AuthenticationManager {
             }
 
             // we need to add dynamic scopes with params to the scopes to consent every time for now
-            if (grantedConsent == null || !grantedConsent.isClientScopeGranted(clientScope) || isDynamicScopeWithParam(authDetails)) {
+            if (grantedConsent == null || !grantedConsent.isClientScopeGranted(authDetails, consentedScopes)) {
                 clientScopesToDisplay.add(authDetails);
             }
         }
 
         return clientScopesToDisplay;
-    }
-
-    private static boolean isDynamicScopeWithParam(AuthorizationDetails authorizationDetails) {
-        boolean dynamicScopeWithParam = authorizationDetails.getClientScope().isDynamicScope()
-                && authorizationDetails.getAuthorizationDetails() != null;
-        if (dynamicScopeWithParam) {
-            logger.debugf("Scope %1s is a dynamic scope with param: %2s",
-                    authorizationDetails.getAuthorizationDetails().getScopeNameFromCustomData(),
-                    authorizationDetails.getDynamicScopeParam());
-        }
-        return dynamicScopeWithParam;
     }
 
 

@@ -136,11 +136,11 @@ public class DeviceEndpoint extends AuthorizationEndpointBase implements RealmRe
                 .client(client)
                 .request(request);
 
-        try {
-            checker.checkPKCEParams();
-        } catch (AuthorizationEndpointChecker.AuthorizationCheckException ex) {
-            throw new ErrorResponseException(ex.getError(), ex.getErrorDescription(), Response.Status.BAD_REQUEST);
-        }
+//        try {
+//            checker.checkPKCEParams();
+//        } catch (AuthorizationEndpointChecker.AuthorizationCheckException ex) {
+//            throw new ErrorResponseException(ex.getError(), ex.getErrorDescription(), Response.Status.BAD_REQUEST);
+//        }
 
         try {
             session.clientPolicy().triggerOnEvent(new DeviceAuthorizationRequestContext(request, httpRequest.getDecodedFormParameters()));
