@@ -6,9 +6,3 @@ echo ** Adding truststore spi**
     password => "${auth.server.truststore.password:secret}", \
     hostname-verification-policy => "WILDCARD", \
     disabled => "false"})
-
-echo ** Adding keystore spi**
-/subsystem=keycloak-server/spi=keystore/:add
-/subsystem=keycloak-server/spi=keystore/provider=file/:add(enabled=true,properties={ \
-    file => "${auth.server.keystore:${jboss.home.dir}/standalone/configuration/keycloak.jks}", \
-    password => "${auth.server.keystore.password:secret}"})

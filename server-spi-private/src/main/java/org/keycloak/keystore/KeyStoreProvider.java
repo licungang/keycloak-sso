@@ -17,12 +17,33 @@
 
 package org.keycloak.keystore;
 
-import javax.net.ssl.KeyManager;
+import java.security.KeyStore;
 
 import org.keycloak.provider.Provider;
 
+/**
+ * KeyStore provider provides credentials for clients and servers.
+ */
 public interface KeyStoreProvider extends Provider {
 
-    KeyManager[] getKeyManagers();
+    public static final String LDAP_CLIENT_KEYSTORE = "ldap-client-keystore";
+
+    /**
+     * Loads KeyStore of given identifier.
+     *
+     * @param keyStoreIdentifier Identifier of the wanted KeyStore, such as LDAP_CLIENT_KEYSTORE.
+     * @return KeyStore.
+     */
+    KeyStore loadKeyStore(String keyStoreIdentifier);
+
+    /**
+     * Loads KeyStore of given identifier and returns a KeyStore.Builder.
+     * Builder encapsulates both KeyStore and KeyEntry password(s).
+     *
+     * @param keyStoreIdentifier Identifier of the wanted KeyStore, such as LDAP_CLIENT_KEYSTORE.
+     * @return Builder for KeyStore.
+     */
+
+    KeyStore.Builder loadKeyStoreBuilder(String keyStoreIdentifier);
 
 }

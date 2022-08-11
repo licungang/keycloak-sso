@@ -317,12 +317,13 @@
     },
 
     "keystore": {
-        "file": {
-            "file": "${keycloak.keystore.file:target/dependency/keystore/keycloak.jks}",
-            "password": "${keycloak.keystore.password:secret}",
-            "cache-ttl": "${keycloak.keystore.cacheTtl:}"
+        "default": {
+            "ldapKeyStoreFile": "${keycloak.truststore.file:target/dependency/keystore/keycloak.jks}",
+            "ldapKeyStorePassword": "${keycloak.keystore.password:secret}"
+
         }
     },
+
 
     "jta-lookup": {
         "provider": "${keycloak.jta.lookup.provider:jboss}",

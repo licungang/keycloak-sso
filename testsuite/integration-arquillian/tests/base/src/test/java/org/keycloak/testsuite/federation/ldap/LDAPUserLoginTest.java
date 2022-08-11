@@ -26,12 +26,12 @@ import org.junit.Test;
 import org.junit.rules.ExternalResource;
 import org.junit.runners.MethodSorters;
 import org.keycloak.common.Profile;
+import org.keycloak.component.ComponentModel;
 import org.keycloak.events.Errors;
 import org.keycloak.events.EventType;
 import org.keycloak.models.LDAPConstants;
 import org.keycloak.models.RealmModel;
 import org.keycloak.OAuth2Constants;
-import org.keycloak.component.ComponentModel;
 import org.keycloak.models.ModelException;
 import org.keycloak.representations.idm.EventRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -48,7 +48,6 @@ import org.keycloak.testsuite.util.LDAPRule;
 import org.keycloak.testsuite.util.LDAPRule.LDAPConnectionParameters;
 import org.keycloak.testsuite.util.LDAPTestConfiguration;
 import org.keycloak.testsuite.util.LDAPTestUtils;
-import org.jboss.logging.Logger;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -129,7 +128,7 @@ public class LDAPUserLoginTest extends AbstractLDAPTest {
                 LDAPTestContext ctx = LDAPTestContext.init(session);
                 RealmModel appRealm = ctx.getRealm();
 
-                // add attribute for client certificate for SASL EXTERNAL authentication in ApacheDS
+                // Add attribute for client certificate for SASL EXTERNAL authentication in ApacheDS.
                 ComponentModel ldapModel = LDAPTestUtils.getLdapProviderModel(appRealm);
                 LDAPTestUtils.addUserAttributeMapper(appRealm, ldapModel, "user-certificate-mapper", "user_certificate", "userCertificate");
 
@@ -347,6 +346,7 @@ public class LDAPUserLoginTest extends AbstractLDAPTest {
         verifyConnectionUrlProtocolPrefix("ldap://");
         runLDAPLoginTest();
     }
+
 
     // Check LDAP federated user (in)valid login(s) with SASL EXTERNAL authentication & SSL encryption enabled
     @Test

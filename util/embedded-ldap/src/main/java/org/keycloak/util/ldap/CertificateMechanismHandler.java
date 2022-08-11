@@ -21,6 +21,7 @@
 /* This file is originally copied from ApacheDS
  * https://github.com/apache/directory-server/blob/2.0.0.AM26/protocol-ldap/src/main/java/org/apache/directory/server/ldap/handlers/sasl/external/certificate/CertificateMechanismHandler.java
  * and modified to support client certificate authentication for the admin user too.
+ * https://github.com/apache/directory-server/pull/39
  */
 
 package org.keycloak.util.ldap;

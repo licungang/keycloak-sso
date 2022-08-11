@@ -23,7 +23,7 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.UserModel;
 import org.keycloak.services.ServicesLogger;
 import org.keycloak.truststore.HostnameVerificationPolicy;
-import org.keycloak.truststore.TruststoreProvider;
+import org.keycloak.truststore.JSSETruststoreConfigurator;
 import org.keycloak.vault.VaultStringSecret;
 
 import javax.mail.Address;
@@ -37,8 +37,9 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
-
 import java.io.UnsupportedEncodingException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.Map;
 import java.util.Properties;
@@ -181,11 +182,13 @@ public class DefaultEmailSenderProvider implements EmailSenderProvider {
 
     private void setupTruststore(Properties props) {
         boolean checkServerIdentity = true;
-        TruststoreProvider truststoreProvider = session.getProvider(TruststoreProvider.class);
-        SSLSocketFactory factory = truststoreProvider.getSSLSocketFactory();
+
+        JSSETruststoreConfigurator configurator = new JSSETruststoreConfigurator(session);
+
+        SSLSocketFactory factory = configurator.getSSLSocketFactory();
         if (factory != null) {
             props.put("mail.smtp.ssl.socketFactory", factory);
-            if (truststoreProvider.getPolicy() == HostnameVerificationPolicy.ANY) {
+            if (configurator.getProvider().getPolicy() == HostnameVerificationPolicy.ANY) {
                 props.setProperty("mail.smtp.ssl.trust", "*");
                 checkServerIdentity = false;
             }

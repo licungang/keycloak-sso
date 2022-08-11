@@ -34,7 +34,6 @@ import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.server.core.api.DirectoryService;
 import org.apache.directory.server.core.api.interceptor.Interceptor;
 import org.apache.directory.server.core.api.partition.Partition;
-import org.apache.directory.server.core.factory.AvlPartitionFactory;
 import org.apache.directory.server.core.factory.DefaultDirectoryServiceFactory;
 import org.apache.directory.server.core.factory.JdbmPartitionFactory;
 import org.apache.directory.server.core.normalization.NormalizationInterceptor;

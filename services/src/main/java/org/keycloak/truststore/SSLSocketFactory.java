@@ -17,140 +17,99 @@
 
 package org.keycloak.truststore;
 
-import org.keycloak.keystore.KeyStoreProvider;
+import org.jboss.logging.Logger;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.Comparator;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-
 
 /**
- * This class provides SSLSocketFactory with truststore and keystore configured via TrustStore SPI and KeyStore SPI.
  * Using this class is ugly, but it is the only way to push our truststore to the default LDAP client implementation.
  * <p>
- * This SSLSocketFactory can only use truststore and keystore configured by TruststoreProvider after the ProviderFactory was
- * initialized using standard Spi load / init mechanism. That will only happen if providers are configured
+ * This SSLSocketFactory can only use truststore configured by TruststoreProvider after the ProviderFactory was
+ * initialized using standard Spi load / init mechanism. That will only happen if "truststore" provider is configured
  * in standalone.xml or domain.xml.
  * <p>
- * If TruststoreProvider and KeyStoreProvider are not available this SSLSocketFactory will delegate all operations to javax.net.ssl.SSLSocketFactory.getDefault().
+ * If TruststoreProvider is not available this SSLSocketFactory will delegate all operations to javax.net.ssl.SSLSocketFactory.getDefault().
  *
  * @author <a href="mailto:mstrukel@redhat.com">Marko Strukelj</a>
  */
 
 public class SSLSocketFactory extends javax.net.ssl.SSLSocketFactory implements Comparator {
 
+    private static final Logger log = Logger.getLogger(SSLSocketFactory.class);
+
     private static SSLSocketFactory instance;
 
-    private final TruststoreProvider trustStoreProvider;
-    private final KeyStoreProvider keyStoreProvider;
-    private final javax.net.ssl.SSLSocketFactory delegateSSLSocketFactory;
+    private final javax.net.ssl.SSLSocketFactory sslsf;
 
-    private SSLSocketFactory(KeyStoreProvider ksp, TruststoreProvider tsp) {
-        trustStoreProvider = tsp;
-        keyStoreProvider = ksp;
+    private SSLSocketFactory() {
 
-        // Initialize TrustManagers
-        TrustManager[] tms = null;
-        if (trustStoreProvider != null) {
-            try {
-                TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                tmf.init(trustStoreProvider.getTruststore());
-                tms = tmf.getTrustManagers();
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to initialize TrustManager: ", e);
-            }
+        TruststoreProvider provider = TruststoreProviderSingleton.get();
+        javax.net.ssl.SSLSocketFactory sf = null;
+        if (provider != null) {
+            sf = new JSSETruststoreConfigurator(provider).getSSLSocketFactory();
         }
 
-        // Initialize KeyManagers
-        KeyManager[] kms = null;
-        if (keyStoreProvider != null) {
-            kms = keyStoreProvider.getKeyManagers();
+        if (sf == null) {
+            log.info("No truststore provider found - using default SSLSocketFactory");
+            sf = (javax.net.ssl.SSLSocketFactory) javax.net.ssl.SSLSocketFactory.getDefault();
         }
 
-        // Create SSLSocketFactory with KeyManager and TrustManager
-        try {
-            SSLContext context = SSLContext.getInstance("TLS");
-            context.init(kms, tms, null);
-            delegateSSLSocketFactory = context.getSocketFactory();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to initialize SSLContext: ", e);
-        }
+        sslsf = sf;
     }
 
-    public static synchronized javax.net.ssl.SSLSocketFactory getDefault() {
-        // When TrustStore SPI and/or KeyStore SPI are used the singleton instance is initialized,
-        // otherwise fall back to default SSLSocketFactory (without truststore and keystore).
+    public static synchronized SSLSocketFactory getDefault() {
         if (instance == null) {
-            return (SSLSocketFactory) javax.net.ssl.SSLSocketFactory.getDefault();
+            instance = new SSLSocketFactory();
         }
         return instance;
     }
 
     @Override
     public String[] getDefaultCipherSuites() {
-        return delegateSSLSocketFactory.getDefaultCipherSuites();
+        return sslsf.getDefaultCipherSuites();
     }
 
     @Override
     public String[] getSupportedCipherSuites() {
-        return delegateSSLSocketFactory.getSupportedCipherSuites();
+        return sslsf.getSupportedCipherSuites();
     }
 
     @Override
     public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
-        return delegateSSLSocketFactory.createSocket(socket, host, port, autoClose);
+        return sslsf.createSocket(socket, host, port, autoClose);
     }
 
     @Override
     public Socket createSocket(String host, int port) throws IOException {
-        return delegateSSLSocketFactory.createSocket(host, port);
+        return sslsf.createSocket(host, port);
     }
 
     @Override
     public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException {
-        return delegateSSLSocketFactory.createSocket(host, port, localHost, localPort);
+        return sslsf.createSocket(host, port, localHost, localPort);
     }
 
     @Override
     public Socket createSocket(InetAddress host, int port) throws IOException {
-        return delegateSSLSocketFactory.createSocket(host, port);
+        return sslsf.createSocket(host, port);
     }
 
     @Override
     public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort) throws IOException {
-        return delegateSSLSocketFactory.createSocket(address, port, localAddress, localPort);
+        return sslsf.createSocket(address, port, localAddress, localPort);
     }
 
     @Override
     public Socket createSocket() throws IOException {
-        return delegateSSLSocketFactory.createSocket();
+        return sslsf.createSocket();
     }
 
     @Override
     public int compare(Object socketFactory1, Object socketFactory2) {
         return socketFactory1.equals(socketFactory2) ? 0 : -1;
     }
-
-    public static synchronized void set(TruststoreProvider trustStoreProvider) {
-        if (instance == null) {
-            instance = new SSLSocketFactory(null, trustStoreProvider);
-        } else {
-            instance = new SSLSocketFactory(instance.keyStoreProvider, trustStoreProvider);
-        }
-    }
-
-    public static synchronized void set(KeyStoreProvider keyStoreProvider) {
-        if (instance == null) {
-            instance = new SSLSocketFactory(keyStoreProvider, null);
-        } else {
-            instance = new SSLSocketFactory(keyStoreProvider, instance.trustStoreProvider);
-        }
-    }
-
 }
