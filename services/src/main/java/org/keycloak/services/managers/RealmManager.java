@@ -19,7 +19,6 @@ package org.keycloak.services.managers;
 import org.keycloak.Config;
 import org.keycloak.common.Profile;
 import org.keycloak.common.enums.SslRequired;
-import org.keycloak.migration.MigrationModelManager;
 import org.keycloak.models.AccountRoles;
 import org.keycloak.models.AdminRoles;
 import org.keycloak.models.BrowserSecurityHeaders;
@@ -52,6 +51,8 @@ import org.keycloak.representations.idm.RealmEventsConfigRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.sessions.AuthenticationSessionProvider;
+import org.keycloak.storage.LegacyStoreMigrateRepresentationEvent;
+import org.keycloak.storage.LegacyStoreSyncEvent;
 import org.keycloak.services.clientregistration.policy.DefaultClientRegistrationPolicies;
 
 import java.util.Collections;
@@ -81,7 +82,7 @@ public class RealmManager {
     }
 
     public RealmModel getKeycloakAdminstrationRealm() {
-        return getRealm(Config.getAdminRealm());
+        return getRealmByName(Config.getAdminRealm());
     }
 
     public RealmModel getRealm(String id) {
@@ -93,11 +94,11 @@ public class RealmManager {
     }
 
     public RealmModel createRealm(String name) {
-        return createRealm(name, name);
+        return createRealm(null, name);
     }
 
     public RealmModel createRealm(String id, String name) {
-        if (id == null) {
+        if (id == null || id.trim().isEmpty()) {
             id = KeycloakModelUtils.generateId();
         }
         else {
@@ -172,6 +173,7 @@ public class RealmManager {
         String baseUrl = "/admin/" + realm.getName() + "/console/";
         adminConsole.setBaseUrl(baseUrl);
         adminConsole.addRedirectUri(baseUrl + "*");
+        adminConsole.setAttribute(OIDCConfigAttributes.POST_LOGOUT_REDIRECT_URIS, "+");
         adminConsole.setWebOrigins(Collections.singleton("+"));
 
         adminConsole.setEnabled(true);
@@ -271,10 +273,7 @@ public class RealmManager {
             }
 
           // Refresh periodic sync tasks for configured storageProviders
-            UserStorageSyncManager storageSync = new UserStorageSyncManager();
-            realm.getUserStorageProvidersStream()
-                    .forEachOrdered(provider -> storageSync.notifyToRefreshPeriodicSync(session, realm, provider, true));
-
+          LegacyStoreSyncEvent.fire(session, realm, true);
         }
         return removed;
     }
@@ -299,8 +298,8 @@ public class RealmManager {
 
     public void setupMasterAdminManagement(RealmModel realm) {
         // Need to refresh masterApp for current realm
-        String adminRealmId = Config.getAdminRealm();
-        RealmModel adminRealm = model.getRealm(adminRealmId);
+        String adminRealmName = Config.getAdminRealm();
+        RealmModel adminRealm = model.getRealmByName(adminRealmName);
         ClientModel masterApp = adminRealm.getClientByClientId(KeycloakModelUtils.getMasterRealmAdminApplicationClientId(realm.getName()));
         if (masterApp == null) {
             createMasterAdminManagement(realm);
@@ -322,7 +321,7 @@ public class RealmManager {
             adminRole.addCompositeRole(createRealmRole);
             createRealmRole.setDescription("${role_" + AdminRoles.CREATE_REALM + "}");
         } else {
-            adminRealm = model.getRealm(Config.getAdminRealm());
+            adminRealm = model.getRealmByName(Config.getAdminRealm());
             adminRole = adminRealm.getRole(AdminRoles.ADMIN);
         }
         adminRole.setDescription("${role_"+AdminRoles.ADMIN+"}");
@@ -419,6 +418,7 @@ public class RealmManager {
             String baseUrl = "/realms/" + realm.getName() + "/account/";
             accountClient.setBaseUrl(baseUrl);
             accountClient.addRedirectUri(baseUrl + "*");
+            accountClient.setAttribute(OIDCConfigAttributes.POST_LOGOUT_REDIRECT_URIS, "+");
 
             accountClient.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
 
@@ -453,6 +453,7 @@ public class RealmManager {
                 accountConsoleClient.setRootUrl(Constants.AUTH_BASE_URL_PROP);
                 accountConsoleClient.setBaseUrl(baseUrl);
                 accountConsoleClient.addRedirectUri(baseUrl + "*");
+                accountConsoleClient.setAttribute(OIDCConfigAttributes.POST_LOGOUT_REDIRECT_URIS, "+");
 
                 accountConsoleClient.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
 
@@ -588,15 +589,13 @@ public class RealmManager {
         }
 
         // Refresh periodic sync tasks for configured storageProviders
-        UserStorageSyncManager storageSync = new UserStorageSyncManager();
-        realm.getUserStorageProvidersStream()
-                .forEachOrdered(provider -> storageSync.notifyToRefreshPeriodicSync(session, realm, provider, false));
+        LegacyStoreSyncEvent.fire(session, realm, false);
 
         setupAuthorizationServices(realm);
         setupClientRegistrations(realm);
 
         if (rep.getKeycloakVersion() != null) {
-            MigrationModelManager.migrateImport(session, realm, rep, skipUserDependent);
+            LegacyStoreMigrateRepresentationEvent.fire(session, realm, rep, skipUserDependent);
         }
 
         session.clientPolicy().updateRealmModelFromRepresentation(realm, rep);

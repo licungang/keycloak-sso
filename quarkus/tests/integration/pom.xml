@@ -24,7 +24,7 @@
     <parent>
         <artifactId>keycloak-quarkus-test-parent</artifactId>
         <groupId>org.keycloak</groupId>
-        <version>17.0.0-SNAPSHOT</version>
+        <version>999-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -34,7 +34,7 @@
 
     <properties>
         <kc.quarkus.tests.dist>raw</kc.quarkus.tests.dist>
-        <approvaltests.version>12.3.2</approvaltests.version>
+        <approvaltests.version>14.0.0</approvaltests.version>
     </properties>
 
     <dependencies>
@@ -58,6 +58,11 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-quarkus-dist</artifactId>
+            <type>zip</type>
+        </dependency>
+        <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit5</artifactId>
         </dependency>
@@ -73,6 +78,18 @@
             <groupId>com.approvaltests</groupId>
             <artifactId>approvaltests</artifactId>
             <version>${approvaltests.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mariadb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mysql</artifactId>
         </dependency>
     </dependencies>
 
@@ -103,9 +120,12 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
                             <argLine>-Xmx1024m -XX:MaxMetaspaceSize=512m</argLine>
-                            <systemProperties>
+                            <systemPropertyVariables>
                                 <kc.test.storage.database>true</kc.test.storage.database>
-                            </systemProperties>
+                                <!--DB Container -->
+                                <kc.db.postgresql.container.image>postgres:alpine</kc.db.postgresql.container.image>
+                                <kc.db.mariadb.container.image>mariadb:10.5.9</kc.db.mariadb.container.image>
+                            </systemPropertyVariables>
                         </configuration>
                     </plugin>
                 </plugins>

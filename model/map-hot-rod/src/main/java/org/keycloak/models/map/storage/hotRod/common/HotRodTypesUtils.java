@@ -18,7 +18,16 @@
 package org.keycloak.models.map.storage.hotRod.common;
 
 import org.keycloak.models.map.common.AbstractEntity;
+import org.keycloak.models.map.common.DeepCloner;
+import org.keycloak.models.map.storage.hotRod.authSession.HotRodAuthenticationSessionEntity;
+import org.keycloak.models.map.storage.hotRod.realm.entity.HotRodLocalizationTexts;
+import org.keycloak.models.map.storage.hotRod.user.HotRodUserConsentEntity;
+import org.keycloak.models.map.storage.hotRod.user.HotRodUserFederatedIdentityEntity;
+import org.keycloak.models.map.storage.hotRod.userSession.AuthenticatedClientSessionReferenceOnlyFieldDelegate;
+import org.keycloak.models.map.storage.hotRod.userSession.HotRodAuthenticatedClientSessionEntityReference;
+import org.keycloak.models.map.userSession.MapAuthenticatedClientSessionEntity;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -36,11 +45,15 @@ public class HotRodTypesUtils {
     }
 
     public static <MapKey, MapValue, SetValue> Map<MapKey, MapValue> migrateSetToMap(Set<SetValue> set, Function<SetValue, MapKey> keyProducer, Function<SetValue, MapValue> valueProducer) {
-        return set == null ? null : set.stream().collect(Collectors.toMap(keyProducer, valueProducer));
+        return set == null ? null : set.stream().collect(HashMap::new, (m, v) -> m.put(keyProducer.apply(v), valueProducer.apply(v)), HashMap::putAll);
     }
 
     public static <T, V> HotRodPair<T, V> createHotRodPairFromMapEntry(Map.Entry<T, V> entry) {
         return new HotRodPair<>(entry.getKey(), entry.getValue());
+    }
+
+    public static HotRodStringPair createHotRodStringPairFromMapEntry(Map.Entry<String, String> entry) {
+        return new HotRodStringPair(entry.getKey(), entry.getValue());
     }
 
     public static HotRodAttributeEntity createHotRodAttributeEntityFromMapEntry(Map.Entry<String, List<String>> entry) {
@@ -72,6 +85,14 @@ public class HotRodTypesUtils {
         return hotRodPair.getValue();
     }
 
+    public static String getKey(HotRodStringPair hotRodPair) {
+        return hotRodPair.getKey();
+    }
+
+    public static String getValue(HotRodStringPair hotRodPair) {
+        return hotRodPair.getValue();
+    }
+
     public static String getKey(HotRodAttributeEntity attributeEntity) {
         return attributeEntity.name;
     }
@@ -90,5 +111,50 @@ public class HotRodTypesUtils {
 
     public static String getKey(AbstractEntity entity) {
         return entity.getId();
+    }
+
+    public static String getKey(HotRodUserFederatedIdentityEntity hotRodUserFederatedIdentityEntity) {
+        return hotRodUserFederatedIdentityEntity.identityProvider;
+    }
+
+    public static String getKey(HotRodUserConsentEntity hotRodUserConsentEntity) {
+        return hotRodUserConsentEntity.clientId;
+    }
+
+    public static <T, V> List<V> migrateList(List<T> p0, Function<T, V> migrator) {
+        return p0 == null ? null : p0.stream().map(migrator).collect(Collectors.toList());
+    }
+
+    public static <T, V> Set<V> migrateSet(Set<T> p0, Function<T, V> migrator) {
+        return p0 == null ? null : p0.stream().map(migrator).collect(Collectors.toSet());
+    }
+
+    public static String getKey(HotRodAuthenticationSessionEntity hotRodAuthenticationSessionEntity) {
+        return hotRodAuthenticationSessionEntity.tabId;
+    }
+
+    public static String getKey(HotRodLocalizationTexts hotRodLocalizationTexts) {
+        return hotRodLocalizationTexts.getLocale();
+    }
+
+    public static Map<String, String> getValue(HotRodLocalizationTexts hotRodLocalizationTexts) {
+        Set<HotRodPair<String, String>> values = hotRodLocalizationTexts.getValues();
+        return values == null ? null : values.stream().collect(Collectors.toMap(HotRodPair::getKey, HotRodPair::getValue));
+    }
+
+    public static HotRodLocalizationTexts migrateStringMapToHotRodLocalizationTexts(String p0, Map<String, String> p1) {
+        HotRodLocalizationTexts hotRodLocalizationTexts = new HotRodLocalizationTexts();
+        hotRodLocalizationTexts.setLocale(p0);
+        hotRodLocalizationTexts.setValues(migrateMapToSet(p1, HotRodTypesUtils::createHotRodPairFromMapEntry));
+
+        return hotRodLocalizationTexts;
+    }
+
+    public static HotRodAuthenticatedClientSessionEntityReference migrateMapAuthenticatedClientSessionEntityToHotRodAuthenticatedClientSessionEntityReference(MapAuthenticatedClientSessionEntity p0) {
+        return new HotRodAuthenticatedClientSessionEntityReference(p0.getClientId(), p0.getId());
+    }
+
+    public static MapAuthenticatedClientSessionEntity migrateHotRodAuthenticatedClientSessionEntityReferenceToMapAuthenticatedClientSessionEntity(HotRodAuthenticatedClientSessionEntityReference collectionItem) {
+        return DeepCloner.DUMB_CLONER.entityFieldDelegate(MapAuthenticatedClientSessionEntity.class, new AuthenticatedClientSessionReferenceOnlyFieldDelegate(collectionItem));
     }
 }

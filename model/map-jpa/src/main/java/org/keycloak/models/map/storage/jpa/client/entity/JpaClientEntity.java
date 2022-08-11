@@ -16,11 +16,9 @@
  */
 package org.keycloak.models.map.storage.jpa.client.entity;
 
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +42,10 @@ import org.hibernate.annotations.TypeDefs;
 import org.keycloak.models.map.client.MapClientEntity.AbstractClientEntity;
 import org.keycloak.models.map.client.MapProtocolMapperEntity;
 import org.keycloak.models.map.common.DeepCloner;
-import static org.keycloak.models.map.storage.jpa.Constants.SUPPORTED_VERSION_CLIENT;
+import static org.keycloak.models.map.storage.jpa.Constants.CURRENT_SCHEMA_VERSION_CLIENT;
+
+import org.keycloak.models.map.common.UuidValidator;
+import org.keycloak.models.map.storage.jpa.JpaRootVersionedEntity;
 import org.keycloak.models.map.storage.jpa.hibernate.jsonb.JsonbType;
 
 /**
@@ -53,14 +54,14 @@ import org.keycloak.models.map.storage.jpa.hibernate.jsonb.JsonbType;
  * therefore marked as non-insertable and non-updatable to instruct hibernate.
  */
 @Entity
-@Table(name = "client",
+@Table(name = "kc_client",
     uniqueConstraints = {
             @UniqueConstraint(
                     columnNames = {"realmId", "clientId"}
             )
 })
 @TypeDefs({@TypeDef(name = "jsonb", typeClass = JsonbType.class)})
-public class JpaClientEntity extends AbstractClientEntity implements Serializable {
+public class JpaClientEntity extends AbstractClientEntity implements JpaRootVersionedEntity {
 
     @Id
     @Column
@@ -95,7 +96,7 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
     @Basic(fetch = FetchType.LAZY)
     private Boolean enabled;
 
-    @OneToMany(mappedBy = "client", cascade = CascadeType.PERSIST, orphanRemoval = true)
+    @OneToMany(mappedBy = "root", cascade = CascadeType.PERSIST, orphanRemoval = true)
     private final Set<JpaClientAttributeEntity> attributes = new HashSet<>();
 
     /**
@@ -113,9 +114,10 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
      * Used by hibernate when calling cb.construct from read(QueryParameters) method.
      * It is used to select client without metadata(json) field.
      */
-    public JpaClientEntity(UUID id, Integer entityVersion, String realmId, String clientId, 
+    public JpaClientEntity(UUID id, int version, Integer entityVersion,  String realmId, String clientId,
             String protocol, Boolean enabled) {
         this.id = id;
+        this.version = version;
         this.entityVersion = entityVersion;
         this.realmId = realmId;
         this.clientId = clientId;
@@ -128,26 +130,23 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
         return metadata != null;
     }
 
-    /**
-     * In case of any update on entity, we want to update the entityVerion
-     * to current one.
-     */
-    private void checkEntityVersionForUpdate() {
-        Integer ev = getEntityVersion();
-        if (ev != null && ev < SUPPORTED_VERSION_CLIENT) {
-            setEntityVersion(SUPPORTED_VERSION_CLIENT);
-        }
-    }
-
+    @Override
     public Integer getEntityVersion() {
         if (isMetadataInitialized()) return metadata.getEntityVersion();
         return entityVersion;
     }
 
+    @Override
     public void setEntityVersion(Integer entityVersion) {
         metadata.setEntityVersion(entityVersion);
     }
 
+    @Override
+    public Integer getCurrentSchemaVersion() {
+        return CURRENT_SCHEMA_VERSION_CLIENT;
+    }
+
+    @Override
     public int getVersion() {
         return version;
     }
@@ -159,7 +158,8 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setId(String id) {
-        this.id = id == null ? null : UUID.fromString(id);
+        String validatedId = UuidValidator.validateAndConvert(id);
+        this.id = UUID.fromString(validatedId);
     }
 
     @Override
@@ -170,7 +170,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setRealmId(String realmId) {
-        checkEntityVersionForUpdate();
         metadata.setRealmId(realmId);
     }
 
@@ -182,13 +181,11 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setClientId(String clientId) {
-        checkEntityVersionForUpdate();
         metadata.setClientId(clientId);
     }
 
     @Override
     public void setEnabled(Boolean enabled) {
-        checkEntityVersionForUpdate();
         metadata.setEnabled(enabled);
     }
 
@@ -205,41 +202,26 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setClientScope(String id, Boolean defaultScope) {
-        checkEntityVersionForUpdate();
         metadata.setClientScope(id, defaultScope);
     }
 
     @Override
     public void removeClientScope(String id) {
-        checkEntityVersionForUpdate();
         metadata.removeClientScope(id);
     }
 
     @Override
-    public MapProtocolMapperEntity getProtocolMapper(String id) {
-        return metadata.getProtocolMapper(id);
-    }
-
-    @Override
-    public Map<String, MapProtocolMapperEntity> getProtocolMappers() {
+    public Set<MapProtocolMapperEntity> getProtocolMappers() {
         return metadata.getProtocolMappers();
     }
 
     @Override
-    public void removeProtocolMapper(String id) {
-        checkEntityVersionForUpdate();
-        metadata.removeProtocolMapper(id);
-    }
-
-    @Override
-    public void setProtocolMapper(String id, MapProtocolMapperEntity mapping) {
-        checkEntityVersionForUpdate();
-        metadata.setProtocolMapper(id, mapping);
+    public void addProtocolMapper(MapProtocolMapperEntity mapping) {
+        metadata.addProtocolMapper(mapping);
     }
 
     @Override
     public void addRedirectUri(String redirectUri) {
-        checkEntityVersionForUpdate();
         metadata.addRedirectUri(redirectUri);
     }
 
@@ -250,25 +232,21 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void removeRedirectUri(String redirectUri) {
-        checkEntityVersionForUpdate();
         metadata.removeRedirectUri(redirectUri);
     }
 
     @Override
     public void setRedirectUris(Set<String> redirectUris) {
-        checkEntityVersionForUpdate();
         metadata.setRedirectUris(redirectUris);
     }
 
     @Override
     public void addScopeMapping(String id) {
-        checkEntityVersionForUpdate();
         metadata.addScopeMapping(id);
     }
 
     @Override
     public void removeScopeMapping(String id) {
-        checkEntityVersionForUpdate();
         metadata.removeScopeMapping(id);
     }
 
@@ -279,7 +257,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void addWebOrigin(String webOrigin) {
-        checkEntityVersionForUpdate();
         metadata.addWebOrigin(webOrigin);
     }
 
@@ -290,13 +267,11 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void removeWebOrigin(String webOrigin) {
-        checkEntityVersionForUpdate();
         metadata.removeWebOrigin(webOrigin);
     }
 
     @Override
     public void setWebOrigins(Set<String> webOrigins) {
-        checkEntityVersionForUpdate();
         metadata.setWebOrigins(webOrigins);
     }
 
@@ -312,13 +287,11 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void removeAuthenticationFlowBindingOverride(String binding) {
-        checkEntityVersionForUpdate();
         metadata.removeAuthenticationFlowBindingOverride(binding);
     }
 
     @Override
     public void setAuthenticationFlowBindingOverride(String binding, String flowId) {
-        checkEntityVersionForUpdate();
         metadata.setAuthenticationFlowBindingOverride(binding, flowId);
     }
 
@@ -329,7 +302,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setBaseUrl(String baseUrl) {
-        checkEntityVersionForUpdate();
         metadata.setBaseUrl(baseUrl);
     }
 
@@ -340,7 +312,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setClientAuthenticatorType(String clientAuthenticatorType) {
-        checkEntityVersionForUpdate();
         metadata.setClientAuthenticatorType(clientAuthenticatorType);
     }
 
@@ -351,7 +322,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setDescription(String description) {
-        checkEntityVersionForUpdate();
         metadata.setDescription(description);
     }
 
@@ -362,7 +332,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setManagementUrl(String managementUrl) {
-        checkEntityVersionForUpdate();
         metadata.setManagementUrl(managementUrl);
     }
 
@@ -373,7 +342,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setName(String name) {
-        checkEntityVersionForUpdate();
         metadata.setName(name);
     }
 
@@ -384,18 +352,16 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setNodeReRegistrationTimeout(Integer nodeReRegistrationTimeout) {
-        checkEntityVersionForUpdate();
         metadata.setNodeReRegistrationTimeout(nodeReRegistrationTimeout);
     }
 
     @Override
-    public Integer getNotBefore() {
+    public Long getNotBefore() {
         return metadata.getNotBefore();
     }
 
     @Override
-    public void setNotBefore(Integer notBefore) {
-        checkEntityVersionForUpdate();
+    public void setNotBefore(Long notBefore) {
         metadata.setNotBefore(notBefore);
     }
 
@@ -407,7 +373,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setProtocol(String protocol) {
-        checkEntityVersionForUpdate();
         metadata.setProtocol(protocol);
     }
 
@@ -418,7 +383,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setRegistrationToken(String registrationToken) {
-        checkEntityVersionForUpdate();
         metadata.setRegistrationToken(registrationToken);
     }
 
@@ -429,7 +393,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setRootUrl(String rootUrl) {
-        checkEntityVersionForUpdate();
         metadata.setRootUrl(rootUrl);
     }
 
@@ -440,7 +403,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setScope(Set<String> scope) {
-        checkEntityVersionForUpdate();
         metadata.setScope(scope);
     }
 
@@ -451,7 +413,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setSecret(String secret) {
-        checkEntityVersionForUpdate();
         metadata.setSecret(secret);
     }
 
@@ -462,7 +423,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setAlwaysDisplayInConsole(Boolean alwaysDisplayInConsole) {
-        checkEntityVersionForUpdate();
         metadata.setAlwaysDisplayInConsole(alwaysDisplayInConsole);
     }
 
@@ -473,7 +433,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setBearerOnly(Boolean bearerOnly) {
-        checkEntityVersionForUpdate();
         metadata.setBearerOnly(bearerOnly);
     }
 
@@ -484,7 +443,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setConsentRequired(Boolean consentRequired) {
-        checkEntityVersionForUpdate();
         metadata.setConsentRequired(consentRequired);
     }
 
@@ -495,7 +453,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setDirectAccessGrantsEnabled(Boolean directAccessGrantsEnabled) {
-        checkEntityVersionForUpdate();
         metadata.setDirectAccessGrantsEnabled(directAccessGrantsEnabled);
     }
 
@@ -506,7 +463,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setFrontchannelLogout(Boolean frontchannelLogout) {
-        checkEntityVersionForUpdate();
         metadata.setFrontchannelLogout(frontchannelLogout);
     }
 
@@ -517,7 +473,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setFullScopeAllowed(Boolean fullScopeAllowed) {
-        checkEntityVersionForUpdate();
         metadata.setFullScopeAllowed(fullScopeAllowed);
     }
 
@@ -528,7 +483,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setImplicitFlowEnabled(Boolean implicitFlowEnabled) {
-        checkEntityVersionForUpdate();
         metadata.setImplicitFlowEnabled(implicitFlowEnabled);
     }
 
@@ -539,7 +493,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setPublicClient(Boolean publicClient) {
-        checkEntityVersionForUpdate();
         metadata.setPublicClient(publicClient);
     }
 
@@ -550,7 +503,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setServiceAccountsEnabled(Boolean serviceAccountsEnabled) {
-        checkEntityVersionForUpdate();
         metadata.setServiceAccountsEnabled(serviceAccountsEnabled);
     }
 
@@ -561,7 +513,6 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setStandardFlowEnabled(Boolean standardFlowEnabled) {
-        checkEntityVersionForUpdate();
         metadata.setStandardFlowEnabled(standardFlowEnabled);
     }
 
@@ -572,25 +523,16 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setSurrogateAuthRequired(Boolean surrogateAuthRequired) {
-        checkEntityVersionForUpdate();
         metadata.setSurrogateAuthRequired(surrogateAuthRequired);
     }
 
     @Override
     public void removeAttribute(String name) {
-        checkEntityVersionForUpdate();
-        for (Iterator<JpaClientAttributeEntity> iterator = attributes.iterator(); iterator.hasNext();) {
-            JpaClientAttributeEntity attr = iterator.next();
-            if (Objects.equals(attr.getName(), name)) {
-                iterator.remove();
-                attr.setClient(null);
-            }
-        }
+        attributes.removeIf(attr -> Objects.equals(attr.getName(), name));
     }
 
     @Override
     public void setAttribute(String name, List<String> values) {
-        checkEntityVersionForUpdate();
         removeAttribute(name);
         for (String value : values) {
             JpaClientAttributeEntity attribute = new JpaClientAttributeEntity(this, name, value);
@@ -619,12 +561,7 @@ public class JpaClientEntity extends AbstractClientEntity implements Serializabl
 
     @Override
     public void setAttributes(Map<String, List<String>> attributes) {
-        checkEntityVersionForUpdate();
-        for (Iterator<JpaClientAttributeEntity> iterator = this.attributes.iterator(); iterator.hasNext();) {
-            JpaClientAttributeEntity attr = iterator.next();
-            iterator.remove();
-            attr.setClient(null);
-        }
+        this.attributes.clear();
         if (attributes != null) {
             for (Map.Entry<String, List<String>> attrEntry : attributes.entrySet()) {
                 setAttribute(attrEntry.getKey(), attrEntry.getValue());

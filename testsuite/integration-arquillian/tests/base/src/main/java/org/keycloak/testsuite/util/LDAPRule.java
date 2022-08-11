@@ -77,7 +77,7 @@ public class LDAPRule extends ExternalResource {
     }
 
     @Override
-    protected void before() throws Throwable {
+    public void before() throws Throwable {
         String connectionPropsLocation = getConnectionPropertiesLocation();
         ldapTestConfiguration = LDAPTestConfiguration.readConfiguration(connectionPropsLocation);
 
@@ -93,7 +93,8 @@ public class LDAPRule extends ExternalResource {
     @Override
     public Statement apply(Statement base, Description description) {
         // Default bind credential value
-        serverProperties.setProperty(LDAPConstants.BIND_CREDENTIAL, "secret");
+        defaultProperties.setProperty(LDAPConstants.BIND_CREDENTIAL, "secret");
+        defaultProperties.setProperty(LDAPConstants.CONNECTION_POOLING, "true");
         // Default values of the authentication / access control method and connection encryption to use on the embedded
         // LDAP server upon start if not (re)set later via the LDAPConnectionParameters annotation directly on the test
         serverProperties.setProperty(LDAPEmbeddedServer.PROPERTY_ENABLE_ACCESS_CONTROL, "true");
@@ -195,7 +196,7 @@ public class LDAPRule extends ExternalResource {
     }
 
     @Override
-    protected void after() {
+    public void after() {
         try {
             if (ldapEmbeddedServer != null) {
                 ldapEmbeddedServer.stop();

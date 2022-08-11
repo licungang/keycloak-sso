@@ -24,11 +24,12 @@ import org.keycloak.models.map.common.AbstractEntity;
 import org.keycloak.models.map.common.DeepCloner;
 import org.keycloak.models.map.common.EntityWithAttributes;
 import org.keycloak.models.map.common.UpdatableEntity;
+import org.keycloak.models.map.credential.DefaultMapSubjectCredentialManagerEntity;
+import org.keycloak.models.map.credential.MapSubjectCredentialManagerEntity;
 import org.keycloak.models.utils.KeycloakModelUtils;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -39,7 +40,7 @@ import java.util.Set;
 @DeepCloner.Root
 public interface MapUserEntity extends UpdatableEntity, AbstractEntity, EntityWithAttributes {
 
-    public abstract class AbstractUserEntity extends UpdatableEntity.Impl implements MapUserEntity {
+    abstract class AbstractUserEntity extends Impl implements MapUserEntity {
 
         private static final Logger LOG = Logger.getLogger(MapUserProvider.class);
         private String id;
@@ -200,12 +201,6 @@ public interface MapUserEntity extends UpdatableEntity, AbstractEntity, EntityWi
     String getEmailConstraint();
     void setEmailConstraint(String emailConstraint);
 
-    Map<String, List<String>> getAttributes();
-    List<String> getAttribute(String name);
-    void setAttributes(Map<String, List<String>> attributes);
-    void setAttribute(String name, List<String> value);
-    void removeAttribute(String name);
-
     Set<String> getRequiredActions();
     void setRequiredActions(Set<String> requiredActions);
     void addRequiredAction(String requiredAction);
@@ -250,6 +245,10 @@ public interface MapUserEntity extends UpdatableEntity, AbstractEntity, EntityWi
     String getServiceAccountClientLink();
     void setServiceAccountClientLink(String serviceAccountClientLink);
 
-    Integer getNotBefore();
-    void setNotBefore(Integer notBefore);
+    Long getNotBefore();
+    void setNotBefore(Long notBefore);
+
+    default MapSubjectCredentialManagerEntity credentialManager() {
+        return new DefaultMapSubjectCredentialManagerEntity();
+    }
 }

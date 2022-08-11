@@ -16,10 +16,8 @@
  */
 package org.keycloak.models.map.storage.jpa.role.entity;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -41,8 +39,10 @@ import org.hibernate.annotations.Type;
 import org.hibernate.annotations.TypeDef;
 import org.hibernate.annotations.TypeDefs;
 import org.keycloak.models.map.common.DeepCloner;
+import org.keycloak.models.map.common.UuidValidator;
 import org.keycloak.models.map.role.MapRoleEntity.AbstractRoleEntity;
-import static org.keycloak.models.map.storage.jpa.Constants.SUPPORTED_VERSION_ROLE;
+import static org.keycloak.models.map.storage.jpa.Constants.CURRENT_SCHEMA_VERSION_ROLE;
+import org.keycloak.models.map.storage.jpa.JpaRootVersionedEntity;
 import org.keycloak.models.map.storage.jpa.hibernate.jsonb.JsonbType;
 
 /**
@@ -51,9 +51,9 @@ import org.keycloak.models.map.storage.jpa.hibernate.jsonb.JsonbType;
  * therefore marked as non-insertable and non-updatable to instruct hibernate.
  */
 @Entity
-@Table(name = "role", uniqueConstraints = {@UniqueConstraint(columnNames = {"realmId", "clientId", "name"})})
+@Table(name = "kc_role", uniqueConstraints = {@UniqueConstraint(columnNames = {"realmId", "clientId", "name"})})
 @TypeDefs({@TypeDef(name = "jsonb", typeClass = JsonbType.class)})
-public class JpaRoleEntity extends AbstractRoleEntity implements Serializable {
+public class JpaRoleEntity extends AbstractRoleEntity implements JpaRootVersionedEntity {
 
     @Id
     @Column
@@ -88,7 +88,7 @@ public class JpaRoleEntity extends AbstractRoleEntity implements Serializable {
     @Basic(fetch = FetchType.LAZY)
     private String description;
 
-    @OneToMany(mappedBy = "role", cascade = CascadeType.PERSIST, orphanRemoval = true)
+    @OneToMany(mappedBy = "root", cascade = CascadeType.PERSIST, orphanRemoval = true)
     private final Set<JpaRoleAttributeEntity> attributes = new HashSet<>();
 
     /**
@@ -106,8 +106,9 @@ public class JpaRoleEntity extends AbstractRoleEntity implements Serializable {
      * Used by hibernate when calling cb.construct from read(QueryParameters) method.
      * It is used to select role without metadata(json) field.
      */
-    public JpaRoleEntity(UUID id, Integer entityVersion, String realmId, String clientId, String name, String description) {
+    public JpaRoleEntity(UUID id, int version, Integer entityVersion, String realmId, String clientId, String name, String description) {
         this.id = id;
+        this.version = version;
         this.entityVersion = entityVersion;
         this.realmId = realmId;
         this.clientId = clientId;
@@ -120,26 +121,23 @@ public class JpaRoleEntity extends AbstractRoleEntity implements Serializable {
         return metadata != null;
     }
 
-    /**
-     * In case of any update on entity, we want to update the entityVerion
-     * to current one.
-     */
-    private void checkEntityVersionForUpdate() {
-        Integer ev = getEntityVersion();
-        if (ev != null && ev < SUPPORTED_VERSION_ROLE) {
-            setEntityVersion(SUPPORTED_VERSION_ROLE);
-        }
+    @Override
+    public Integer getCurrentSchemaVersion() {
+        return CURRENT_SCHEMA_VERSION_ROLE;
     }
 
+    @Override
     public Integer getEntityVersion() {
         if (isMetadataInitialized()) return metadata.getEntityVersion();
         return entityVersion;
     }
 
+    @Override
     public void setEntityVersion(Integer entityVersion) {
         metadata.setEntityVersion(entityVersion);
     }
 
+    @Override
     public int getVersion() {
         return version;
     }
@@ -151,7 +149,8 @@ public class JpaRoleEntity extends AbstractRoleEntity implements Serializable {
 
     @Override
     public void setId(String id) {
-        this.id = id == null ? null : UUID.fromString(id);
+        String validatedId = UuidValidator.validateAndConvert(id);
+        this.id = UUID.fromString(validatedId);
     }
 
     @Override
@@ -185,49 +184,48 @@ public class JpaRoleEntity extends AbstractRoleEntity implements Serializable {
 
     @Override
     public void setRealmId(String realmId) {
-        checkEntityVersionForUpdate();
         metadata.setRealmId(realmId);
     }
 
     @Override
     public void setClientId(String clientId) {
-        checkEntityVersionForUpdate();
         metadata.setClientId(clientId);
     }
 
     @Override
     public void setName(String name) {
-        checkEntityVersionForUpdate();
         metadata.setName(name);
     }
 
     @Override
     public void setDescription(String description) {
-        checkEntityVersionForUpdate();
         metadata.setDescription(description);
     }
 
     @Override
     public Set<String> getCompositeRoles() {
-        return metadata.getCompositeRoles();
+        throw new UnsupportedOperationException("this is implemented in JpaMapRoleEntityDelegate, should never be called");
     }
 
     @Override
     public void setCompositeRoles(Set<String> compositeRoles) {
-        checkEntityVersionForUpdate();
-        metadata.setCompositeRoles(compositeRoles);
+        if (compositeRoles == null) {
+            // this is called when cloning an entity during creation, can't be avoided with the current implementation
+            return;
+        }
+        throw new UnsupportedOperationException("this is implemented in JpaMapRoleEntityDelegate, should never be called");
+
     }
 
     @Override
     public void addCompositeRole(String roleId) {
-        checkEntityVersionForUpdate();
-        metadata.addCompositeRole(roleId);
+        throw new UnsupportedOperationException("this is implemented in JpaMapRoleEntityDelegate, should never be called");
+
     }
 
     @Override
     public void removeCompositeRole(String roleId) {
-        checkEntityVersionForUpdate();
-        metadata.removeCompositeRole(roleId);
+        throw new UnsupportedOperationException("this is implemented in JpaMapRoleEntityDelegate, should never be called");
     }
 
     @Override
@@ -251,12 +249,7 @@ public class JpaRoleEntity extends AbstractRoleEntity implements Serializable {
 
     @Override
     public void setAttributes(Map<String, List<String>> attributes) {
-        checkEntityVersionForUpdate();
-        for (Iterator<JpaRoleAttributeEntity> iterator = this.attributes.iterator(); iterator.hasNext();) {
-            JpaRoleAttributeEntity attr = iterator.next();
-            iterator.remove();
-            attr.setRole(null);
-        }
+        this.attributes.clear();
         if (attributes != null) {
             for (Map.Entry<String, List<String>> entry : attributes.entrySet()) {
                 setAttribute(entry.getKey(), entry.getValue());
@@ -266,7 +259,6 @@ public class JpaRoleEntity extends AbstractRoleEntity implements Serializable {
 
     @Override
     public void setAttribute(String name, List<String> values) {
-        checkEntityVersionForUpdate();
         removeAttribute(name);
         for (String value : values) {
             JpaRoleAttributeEntity attribute = new JpaRoleAttributeEntity(this, name, value);
@@ -276,14 +268,7 @@ public class JpaRoleEntity extends AbstractRoleEntity implements Serializable {
 
     @Override
     public void removeAttribute(String name) {
-        checkEntityVersionForUpdate();
-        for (Iterator<JpaRoleAttributeEntity> iterator = attributes.iterator(); iterator.hasNext();) {
-            JpaRoleAttributeEntity attr = iterator.next();
-            if (Objects.equals(attr.getName(), name)) {
-                iterator.remove();
-                attr.setRole(null);
-            }
-        }
+        attributes.removeIf(attr -> Objects.equals(attr.getName(), name));
     }
 
     @Override
