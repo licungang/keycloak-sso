@@ -79,7 +79,7 @@ public class DefaultKeyStoreProvider implements KeyStoreProvider, KeyStoreProvid
     public void init(Scope config) {
         // Allow changing the default duration that defines how frequently at most the backing file(s) will be checked
         // for modification. The value is parsed as ISO8601 time duration (e.g. "1s", "2m30s", "1h").
-        String cacheTtl = config.get("keyStoreCacheTtl");
+        String cacheTtl = config.get("keystoreCacheTtl");
         if (cacheTtl != null) {
             log.infov("Setting reloading keyStore cache TTL to {0}", cacheTtl);
             ReloadingKeyStore.setDefaultKeyStoreCacheTtl(Duration.parse("PT" + cacheTtl));
