@@ -1,0 +1,9 @@
+root_level: 0
+component_versions: '*'
+section_merge_strategy: fuse
+build:
+  # only needed for original pdf-extension
+  keep_aggregate_source: false
+  # only needed for original pdf-extension
+  command: 'true'
+  publish: false
