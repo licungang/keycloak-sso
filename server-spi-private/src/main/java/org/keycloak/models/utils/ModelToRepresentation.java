@@ -174,7 +174,7 @@ public class ModelToRepresentation {
             .map(g -> toGroupHierarchy(g, full, search));
     }
 
-    public static Stream<GroupRepresentation> searchForGroupByName(KeycloakSession session, RealmModel realm, boolean full, String search, Boolean exact, Integer first, Integer max) {
+    public static Stream<GroupRepresentation> searchForGroupByName(KeycloakSession session, RealmModel realm, boolean full, String search, boolean exact, Integer first, Integer max) {
         return session.groups().searchForGroupByNameStream(realm, search, exact, first, max)
                 .map(g -> toGroupHierarchy(g, full, search, exact));
     }
@@ -213,7 +213,7 @@ public class ModelToRepresentation {
         return toGroupHierarchy(group, full, search, false);
     }
 
-    public static GroupRepresentation toGroupHierarchy(GroupModel group, boolean full, String search, Boolean exact) {
+    public static GroupRepresentation toGroupHierarchy(GroupModel group, boolean full, String search, boolean exact) {
         GroupRepresentation rep = toRepresentation(group, full);
         List<GroupRepresentation> subGroups = group.getSubGroupsStream()
                 .filter(g -> groupMatchesSearchOrIsPathElement(g, search, exact))
@@ -230,16 +230,37 @@ public class ModelToRepresentation {
         return rep;
     }
 
-    private static boolean groupMatchesSearchOrIsPathElement(GroupModel group, String search, Boolean exact) {
+    public static boolean groupMatchesSearchOrIsPathElement(GroupModel group, String search, boolean exact) {
         if (StringUtil.isBlank(search)) {
             return true;
         }
-        if(exact !=null && exact.equals(true)){
-            if (group.getName().equals(search)){
+        if (group == null) {
+            return false;
+        }
+
+        String groupName = group.getName();
+        if (exact) {
+            // check exact match for group name
+            if (groupName.equals(search)){
                 return true;
             }
+
+            // try to find exact match for group path elements
+            String groupPath = ModelToRepresentation.buildGroupPath(group);
+            for (String groupPathElement : KeycloakModelUtils.splitGroupPathIntoPathComponents(groupPath)) {
+                if (groupPathElement.equals(search)) {
+                    return true;
+                }
+            }
         } else {
-            if (group.getName().contains(search)) {
+            // try to match the group name directly
+            if (groupName.contains(search)) {
+                return true;
+            }
+
+            // try to match a group path element
+            String groupPath = ModelToRepresentation.buildGroupPath(group);
+            if (groupPath.contains(search)) {
                 return true;
             }
         }
