@@ -18,7 +18,12 @@ OpenShift using the Operator.
 
 === Preparing for deployment
 
-Once the Keycloak Operator is installed and running in the cluster namespace, you can set up the other deployment prerequisites.
+
+The Keycloak Operator is installed and running in the cluster namespace.
+
+Please make use of the following guide <https://www.keycloak.org/operator/installation#_installing_by_using_kubectl_without_operator_lifecycle_manager> to install the CRD.
+
+Once you have setup the keycloak operator then you can set up the other deployment prerequisites.
 
 * Database
 * Hostname
