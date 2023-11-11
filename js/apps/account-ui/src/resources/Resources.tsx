@@ -20,6 +20,7 @@ const Resources = () => {
         <Tab
           data-testid="myResources"
           eventKey={0}
+          data-testid="myResources-tab"
           title={<TabTitleText>{t("myResources")}</TabTitleText>}
         >
           <ResourcesTab />
@@ -27,6 +28,7 @@ const Resources = () => {
         <Tab
           data-testid="sharedWithMe"
           eventKey={1}
+          data-testid="sharedWithMe-tab"
           title={<TabTitleText>{t("sharedWithMe")}</TabTitleText>}
         >
           <ResourcesTab isShared />
