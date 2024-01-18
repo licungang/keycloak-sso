@@ -59,6 +59,7 @@ import org.keycloak.models.cache.OnUserCache;
 import org.keycloak.models.cache.UserCache;
 import org.keycloak.models.utils.ComponentUtil;
 import org.keycloak.models.utils.ReadOnlyUserModelDelegate;
+import org.keycloak.models.utils.ReadonlyUntilWriteUserModelDelegate;
 import org.keycloak.storage.client.ClientStorageProvider;
 import org.keycloak.storage.datastore.LegacyDatastoreProvider;
 import org.keycloak.storage.federated.UserFederatedStorageProvider;
@@ -126,6 +127,23 @@ public class UserStorageManager extends AbstractStorageManager<UserStorageProvid
         ImportedUserValidation importedUserValidation = getStorageProviderInstance(model, ImportedUserValidation.class, true);
         if (importedUserValidation == null) return user;
 
+        // should validation be performed outside explicit sync?
+        if (!model.isValidateUserListings()) {
+            // create a proxy delegate to be as useful as possible on existing data
+            return new ReadonlyUntilWriteUserModelDelegate(user, () -> {
+                UserModel userProxyOrNull = getValidatedUserModel(realm, user, importedUserValidation);
+                if(userProxyOrNull==null) {
+                    //not throw exception as the code before
+                    logger.debugf("User was considered read only, but has not been found where it originally came from '%s'", user.getUsername());
+                }
+                return userProxyOrNull;
+            });
+        }
+
+        return getValidatedUserModel(realm, user, importedUserValidation);
+    }
+
+    private UserModel getValidatedUserModel(RealmModel realm, UserModel user, ImportedUserValidation importedUserValidation) {
         UserModel validated = importedUserValidation.validate(realm, user);
         if (validated == null) {
             deleteInvalidUser(realm, user);
