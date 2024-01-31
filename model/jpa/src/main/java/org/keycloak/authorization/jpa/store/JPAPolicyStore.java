@@ -16,36 +16,28 @@
  */
 package org.keycloak.authorization.jpa.store;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.FlushModeType;
-import jakarta.persistence.NoResultException;
-import jakarta.persistence.TypedQuery;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import jakarta.persistence.*;
+import jakarta.persistence.criteria.*;
 
 import org.keycloak.authorization.AuthorizationProvider;
 import org.keycloak.authorization.jpa.entities.PolicyEntity;
+import org.keycloak.authorization.jpa.entities.ResourceEntity;
+import org.keycloak.authorization.jpa.entities.ScopeEntity;
 import org.keycloak.authorization.model.Policy;
 import org.keycloak.authorization.model.Resource;
 import org.keycloak.authorization.model.ResourceServer;
 import org.keycloak.authorization.model.Scope;
 import org.keycloak.authorization.store.PolicyStore;
 import org.keycloak.authorization.store.StoreFactory;
+import org.keycloak.common.util.CollectionUtil;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.representations.idm.authorization.AbstractPolicyRepresentation;
-import jakarta.persistence.LockModeType;
+import org.keycloak.utils.StringUtil;
 
 import static org.keycloak.models.jpa.PaginationUtils.paginateQuery;
 import static org.keycloak.utils.StreamsUtil.closing;
@@ -209,9 +201,13 @@ public class JPAPolicyStore implements PolicyStore {
     }
 
     @Override
-    public void findByResource(ResourceServer resourceServer, Resource resource, Consumer<Policy> consumer) {
-        TypedQuery<PolicyEntity> query = entityManager.createNamedQuery("findPolicyIdByResource", PolicyEntity.class);
-
+    public void findByResource(ResourceServer resourceServer, boolean includeScopes, Resource resource, Consumer<Policy> consumer) {
+        TypedQuery<PolicyEntity> query;
+        if(includeScopes) {
+            query = entityManager.createNamedQuery("findPolicyIdByResource", PolicyEntity.class);
+        } else {
+            query = entityManager.createNamedQuery("findPolicyIdByResourceNoScope", PolicyEntity.class);
+        }
         query.setFlushMode(FlushModeType.COMMIT);
         query.setParameter("resourceId", resource.getId());
         query.setParameter("serverId", resourceServer.getId());
@@ -225,8 +221,13 @@ public class JPAPolicyStore implements PolicyStore {
     }
 
     @Override
-    public void findByResourceType(ResourceServer resourceServer, String resourceType, Consumer<Policy> consumer) {
-        TypedQuery<PolicyEntity> query = entityManager.createNamedQuery("findPolicyIdByResourceType", PolicyEntity.class);
+    public void findByResourceType(ResourceServer resourceServer, boolean nullResourceOnly, String resourceType, Consumer<Policy> consumer) {
+        TypedQuery<PolicyEntity> query;
+        if(nullResourceOnly) {
+            query = entityManager.createNamedQuery("findPolicyIdByNullResourceType", PolicyEntity.class);
+        } else {
+            query = entityManager.createNamedQuery("findPolicyIdByResourceType", PolicyEntity.class);
+        }
 
         query.setFlushMode(FlushModeType.COMMIT);
         query.setParameter("type", resourceType);
@@ -284,6 +285,80 @@ public class JPAPolicyStore implements PolicyStore {
                 .filter(Objects::nonNull))
                 .forEach(consumer::accept);
     }
+
+    @Override
+    public void findResourcePermissionPolicies(ResourceServer resourceServer, Resource resource, Collection<Scope> scopes, String resourceType, boolean resourceServerPolicies, Consumer<Policy> consumer) {
+        // Ideally this would use criteria builders to do type safe construction of dynamic queries, however the SQL generation is creating queries that don't align with what was written
+        // manually specifying the queries is a bit less dynamic but is accurate
+
+        // Create the core query with joins
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.append("select p from PolicyEntity p left join fetch p.resources r left join fetch p.scopes s left join fetch p.config c");
+
+        // These predicates will be "or'd" together to create our query of every relevant policy
+        List<String> predicates = new LinkedList<>();
+
+        // selection on resource id provided. Will also naturally overlap with scopes and types needed
+        if(resource != null) {
+            predicates.add("r.id = :resourceId");
+        }
+
+        // selection on resource types
+        if (StringUtil.isNotBlank(resourceType)) {
+            List<String> typePredicates = new LinkedList<>();
+            // when this feature is enabled we should also get the policies from other resources on the server that match the resource type
+            if(resourceServerPolicies) {
+                typePredicates.add("(r.type like :resourceType and r.resourceServer = :resourceServerId and r.owner = :resourceServerClientId)");
+            }
+            typePredicates.add("(p.resources is empty and KEY(c) = 'defaultResourceType' and c like :resourceType)");
+            predicates.add(String.join(" or ", typePredicates));
+        }
+
+        // selection on scope ids with no resources and no resource type
+        if(CollectionUtil.isNotEmpty(scopes)) {
+            predicates.add("p.resources is empty and s.id in :scopeIds and not exists (select pc from p.config pc where KEY(pc) = 'defaultResourceType')");
+        }
+
+        // construct the query based on what we configured
+        queryBuilder.append(" where " );
+        for(int i = 0; i < predicates.size(); i++) {
+            queryBuilder.append("(").append(predicates.get(i)).append(")");
+            if(i < predicates.size() - 1) {
+                queryBuilder.append(" or ");
+            }
+        }
+
+        // finally add on the requirement that all policies belong to the resource server
+        if(!predicates.isEmpty()) {
+            queryBuilder.append(" and ");
+        }
+        queryBuilder.append("p.resourceServer.id = :resourceServerId");
+
+        // make the query and populate the params
+        TypedQuery<PolicyEntity> policyQuery = entityManager.createQuery(queryBuilder.toString(), PolicyEntity.class);
+
+        if(resource != null) {
+            policyQuery.setParameter("resourceId", resource.getId());
+        }
+
+        if(resourceType != null) {
+            policyQuery.setParameter("resourceType", resourceType);
+            if(resourceServerPolicies) {
+                policyQuery.setParameter("resourceServerClientId", resourceServer.getClientId());
+            }
+        }
+
+        if(CollectionUtil.isNotEmpty(scopes)) {
+            policyQuery.setParameter("scopeIds", scopes.stream().map(Scope::getId).collect(Collectors.toList()));
+        }
+
+        policyQuery.setParameter("resourceServerId", resourceServer.getId());
+
+        policyQuery.getResultStream()
+                .map(policy -> new PolicyAdapter(policy, entityManager, provider.getStoreFactory()))
+                .forEach(consumer);
+    }
+
 
     @Override
     public List<Policy> findByType(ResourceServer resourceServer, String type) {

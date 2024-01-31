@@ -19,11 +19,9 @@
 package org.keycloak.authorization.policy.evaluation;
 
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import org.keycloak.authorization.AuthorizationProvider;
 import org.keycloak.authorization.Decision;
@@ -34,7 +32,6 @@ import org.keycloak.authorization.model.Scope;
 import org.keycloak.authorization.permission.ResourcePermission;
 import org.keycloak.authorization.policy.provider.PolicyProvider;
 import org.keycloak.authorization.store.PolicyStore;
-import org.keycloak.authorization.store.ResourceStore;
 import org.keycloak.authorization.store.StoreFactory;
 import org.keycloak.representations.idm.authorization.PolicyEnforcementMode;
 
@@ -47,11 +44,10 @@ public class DefaultPolicyEvaluator implements PolicyEvaluator {
     public void evaluate(ResourcePermission permission, AuthorizationProvider authorizationProvider, EvaluationContext executionContext, Decision decision, Map<Policy, Map<Object, Decision.Effect>> decisionCache) {
         StoreFactory storeFactory = authorizationProvider.getStoreFactory();
         PolicyStore policyStore = storeFactory.getPolicyStore();
-        ResourceStore resourceStore = storeFactory.getResourceStore();
-
         ResourceServer resourceServer = permission.getResourceServer();
         PolicyEnforcementMode enforcementMode = resourceServer.getPolicyEnforcementMode();
 
+        // if we aren't enforcing policies then we should just grant and return
         if (PolicyEnforcementMode.DISABLED.equals(enforcementMode)) {
             grantAndComplete(permission, authorizationProvider, executionContext, decision);
             return;
@@ -65,33 +61,21 @@ public class DefaultPolicyEvaluator implements PolicyEvaluator {
 
         AtomicBoolean verified = new AtomicBoolean();
         Consumer<Policy> policyConsumer = createPolicyEvaluator(permission, authorizationProvider, executionContext, decision, verified, decisionCache);
-        Resource resource = permission.getResource();
-
-        if (resource != null) {
-            policyStore.findByResource(resourceServer, resource, policyConsumer);
-
-            if (resource.getType() != null) {
-                policyStore.findByResourceType(resourceServer, resource.getType(), policyConsumer);
-
-                if (!resource.getOwner().equals(resourceServer.getClientId())) {
-                    for (Resource typedResource : resourceStore.findByType(resourceServer, resource.getType())) {
-                        policyStore.findByResource(resourceServer, typedResource, policyConsumer);
-                    }
-                }
-            }
-        }
-
         Collection<Scope> scopes = permission.getScopes();
+        Resource resource = permission.getResource();
+        String owner = resource == null ? "" : resource.getOwner();
+        String resourceType = resource == null ? null : resource.getType();
 
-        if (!scopes.isEmpty()) {
-            policyStore.findByScopes(resourceServer, null, new LinkedList<>(scopes), policyConsumer);
-        }
+        // we toggle the evaluation of resource server policies on when the owner of the current resource is not the resource server
+        // TODO turn this feature off by default on the resource server and allow for configuration on admin console
+        policyStore.findResourcePermissionPolicies(resourceServer, resource, scopes, resourceType, !owner.equals(resourceServer.getClientId()), policyConsumer);
 
         if (verified.get()) {
             decision.onComplete(permission);
             return;
         }
 
+        // requests are allowed even when no policies are evaluated, but we still want to keep track of what was denied
         if (PolicyEnforcementMode.PERMISSIVE.equals(enforcementMode)) {
             grantAndComplete(permission, authorizationProvider, executionContext, decision);
         }

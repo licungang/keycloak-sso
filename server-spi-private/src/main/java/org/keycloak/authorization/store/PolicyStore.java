@@ -17,6 +17,7 @@
 package org.keycloak.authorization.store;
 
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -107,7 +108,7 @@ public interface PolicyStore {
     default List<Policy> findByResource(ResourceServer resourceServer, Resource resource) {
         List<Policy> result = new LinkedList<>();
 
-        findByResource(resourceServer, resource, result::add);
+        findByResource(resourceServer, true, resource, result::add);
 
         return result;
     }
@@ -119,7 +120,7 @@ public interface PolicyStore {
      * @param resource the resource. Cannot be {@code null}.
      * @param consumer consumer of policies resulted from the search
      */
-    void findByResource(ResourceServer resourceServer, Resource resource, Consumer<Policy> consumer);
+    void findByResource(ResourceServer resourceServer, boolean includeScopes, Resource resource, Consumer<Policy> consumer);
 
     /**
      * Returns a list of {@link Policy} associated with a {@link org.keycloak.authorization.model.ResourceServer} with the given <code>type</code>.
@@ -131,7 +132,7 @@ public interface PolicyStore {
     default List<Policy> findByResourceType(ResourceServer resourceServer, String resourceType) {
         List<Policy> result = new LinkedList<>();
 
-        findByResourceType(resourceServer, resourceType, result::add);
+        findByResourceType(resourceServer, true, resourceType, result::add);
 
         return result;
     }
@@ -143,7 +144,7 @@ public interface PolicyStore {
      * @param type the type of a resource
      * @param policyConsumer consumer of policies resulted from the search
      */
-    void findByResourceType(ResourceServer resourceServer, String type, Consumer<Policy> policyConsumer);
+    void findByResourceType(ResourceServer resourceServer, boolean nullResourceOnly, String type, Consumer<Policy> policyConsumer);
 
     /**
      * Returns a list of {@link Policy} associated with a {@link org.keycloak.authorization.model.Scope} within the given <code>scope</code>.
@@ -176,6 +177,16 @@ public interface PolicyStore {
      *
      */
     void findByScopes(ResourceServer resourceServer, Resource resource, List<Scope> scopes, Consumer<Policy> consumer);
+
+    /**
+     * Takes a resource and scopes for constructing a matching OR query for all information provided
+     * in a single transaction.
+     * @param resourceServer the resource server where the policies are stored
+     * @param resource the resource to be queried
+     * @param scopes the scopes to be queried
+     * @param consumer the consumer to handle the results
+     */
+    void findResourcePermissionPolicies(ResourceServer resourceServer, Resource resource, Collection<Scope> scopes, String resourceType, boolean resourceServerPolicies, Consumer<Policy> consumer);
 
     /**
      * Returns a list of {@link Policy} with the given <code>type</code>.
