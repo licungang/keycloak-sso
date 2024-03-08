@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Red Hat, Inc. and/or its affiliates
+ * Copyright 2024 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.keycloak.quarkus.runtime.integration.web;
+package org.keycloak.it.jaxrs.filter;
 
-import io.vertx.core.Handler;
-import io.vertx.ext.web.RoutingContext;
+import org.keycloak.it.TestProvider;
 
-public class NotFoundHandler implements Handler<RoutingContext> {
+public class TestFilterTestProvider implements TestProvider {
 
     @Override
-    public void handle(RoutingContext event) {
-        event.fail(404);
+    public Class<?>[] getClasses() {
+        return new Class[] {TestFilter.class};
     }
+
 }
