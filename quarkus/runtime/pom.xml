@@ -100,6 +100,15 @@
             <artifactId>quarkus-logging-json</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.apicatalog</groupId>
+            <artifactId>titanium-json-ld</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.setl</groupId>
+            <artifactId>rdf-urdna</artifactId>
+        </dependency>
+
         <!-- SmallRye -->
         <dependency>
             <groupId>io.smallrye.config</groupId>
@@ -240,16 +249,6 @@
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-model-storage</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-model-legacy</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
@@ -548,10 +547,6 @@
                     <artifactId>woodstox-core</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-core-spi</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

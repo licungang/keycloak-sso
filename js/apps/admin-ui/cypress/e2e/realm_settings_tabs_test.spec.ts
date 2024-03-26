@@ -101,13 +101,15 @@ describe("Realm settings tabs tests", () => {
     realmSettingsPage.fillReplyToEmail("replyTo@email.com");
     realmSettingsPage.fillPort("10");
     cy.findByTestId("email-tab-save").click();
-    cy.get("#kc-display-name-helper").contains("You must enter a valid email.");
-    cy.get("#kc-host-helper").contains("Required field");
+    cy.get("#smtpServer\\.from-helper").contains(
+      "You must enter a valid email.",
+    );
+    cy.get("#smtpServer\\.host-helper").contains("Required field");
 
     cy.findByTestId("email-tab-revert").click();
-    cy.findByTestId("sender-email-address").should("be.empty");
-    cy.findByTestId("from-display-name").should("be.empty");
-    cy.get("#kc-port").should("be.empty");
+    cy.findByTestId("smtpServer.from").should("be.empty");
+    cy.findByTestId("smtpServer.fromDisplayName").should("be.empty");
+    cy.findByTestId("smtpServer.port").should("be.empty");
 
     realmSettingsPage.addSenderEmail("example@example.com");
     realmSettingsPage.toggleCheck(realmSettingsPage.enableSslCheck);
@@ -134,7 +136,8 @@ describe("Realm settings tabs tests", () => {
     it("Realm header settings- update single input", () => {
       sidebarPage.goToRealmSettings();
       realmSettingsPage.goToSecurityDefensesTab();
-      cy.get("#xFrameOptions").clear().type("DENY");
+      cy.findByTestId("browserSecurityHeaders.xFrameOptions").clear();
+      cy.findByTestId("browserSecurityHeaders.xFrameOptions").type("DENY");
       realmSettingsPage.saveSecurityDefensesHeaders();
       masthead.checkNotificationMessage("Realm successfully updated");
     });
@@ -142,14 +145,34 @@ describe("Realm settings tabs tests", () => {
     it("Realm header settings- update all inputs", () => {
       sidebarPage.goToRealmSettings();
       realmSettingsPage.goToSecurityDefensesTab();
-      cy.get("#xFrameOptions").clear().type("SAMEORIGIN");
-      cy.get("#contentSecurityPolicy").clear().type("default-src 'self'");
-      cy.get("#strictTransportSecurity").clear().type("max-age=31536000");
-      cy.get("#xContentTypeOptions").clear().type("nosniff");
-      cy.get("#xRobotsTag").clear().type("none");
-      cy.get("#xXSSProtection").clear().type("1; mode=block");
-      cy.get("#strictTransportSecurity").clear().type("max-age=31537000");
-      cy.get("#referrerPolicy").clear().type("referrer");
+      cy.findByTestId("browserSecurityHeaders.xFrameOptions").clear();
+      cy.findByTestId("browserSecurityHeaders.xFrameOptions").type(
+        "SAMEORIGIN",
+      );
+      cy.findByTestId("browserSecurityHeaders.contentSecurityPolicy").clear();
+      cy.findByTestId("browserSecurityHeaders.contentSecurityPolicy").type(
+        "default-src 'self'",
+      );
+      cy.findByTestId("browserSecurityHeaders.strictTransportSecurity").clear();
+      cy.findByTestId("browserSecurityHeaders.strictTransportSecurity").type(
+        "max-age=31536000",
+      );
+      cy.findByTestId("browserSecurityHeaders.xContentTypeOptions").clear();
+      cy.findByTestId("browserSecurityHeaders.xContentTypeOptions").type(
+        "nosniff",
+      );
+      cy.findByTestId("browserSecurityHeaders.xRobotsTag").clear();
+      cy.findByTestId("browserSecurityHeaders.xRobotsTag").type("none");
+      cy.findByTestId("browserSecurityHeaders.xXSSProtection").clear();
+      cy.findByTestId("browserSecurityHeaders.xXSSProtection").type(
+        "1; mode=block",
+      );
+      cy.findByTestId("browserSecurityHeaders.strictTransportSecurity").clear();
+      cy.findByTestId("browserSecurityHeaders.strictTransportSecurity").type(
+        "max-age=31537000",
+      );
+      cy.findByTestId("browserSecurityHeaders.referrerPolicy").clear();
+      cy.findByTestId("browserSecurityHeaders.referrerPolicy").type("referrer");
       realmSettingsPage.saveSecurityDefensesHeaders();
       masthead.checkNotificationMessage("Realm successfully updated");
     });

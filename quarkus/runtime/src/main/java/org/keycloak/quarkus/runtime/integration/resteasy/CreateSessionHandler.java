@@ -22,7 +22,10 @@ import static org.keycloak.common.util.Resteasy.clearContextData;
 import jakarta.ws.rs.container.CompletionCallback;
 import org.jboss.resteasy.reactive.server.core.ResteasyReactiveRequestContext;
 import org.jboss.resteasy.reactive.server.spi.ServerRestHandler;
+import org.keycloak.common.util.Resteasy;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.quarkus.runtime.integration.QuarkusKeycloakSessionFactory;
 import org.keycloak.quarkus.runtime.transaction.TransactionalSessionHandler;
 
 import io.quarkus.resteasy.reactive.server.runtime.QuarkusResteasyReactiveRequestContext;
@@ -39,13 +42,21 @@ public final class CreateSessionHandler implements ServerRestHandler, Transactio
         if (currentSession == null) {
             // this handler might be invoked multiple times when resolving sub-resources
             // make sure the session is created once
-            routingContext.put(KeycloakSession.class.getName(), create());
+            KeycloakSession session = create();
+            routingContext.put(KeycloakSession.class.getName(), session);
+            // the CloseSessionFilter is needed because it runs sooner than this callback
+            // this is just a catch-all if the CloseSessionFilter doesn't get a chance to run
             context.registerCompletionCallback(this);
         }
     }
 
     @Override
     public void onComplete(Throwable throwable) {
+        try {
+            close(Resteasy.getContextData(KeycloakSession.class));
+        } catch (Exception e) {
+
+        }
         clearContextData();
     }
 }
