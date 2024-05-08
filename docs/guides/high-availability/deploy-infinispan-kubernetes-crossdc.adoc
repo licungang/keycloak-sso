@@ -137,7 +137,7 @@ kubectl -n {ns} create secret generic {ts-secret} \
 +
 NOTE: Keystore and Truststore must be uploaded in both {ocp} clusters.
 
-. Create an {jdgserver_name} Cluster with Cross-Site enabled
+. Create a Cluster for {jdgserver_name} with Cross-Site enabled
 +
 The {infinispan-operator-docs}#setting-up-xsite[Setting Up Cross-Site] documentation provides all the information on how to create and configure your {jdgserver_name} cluster with cross-site enabled, including the previous steps.
 +
@@ -161,7 +161,7 @@ include::examples/generated/ispn-site-a.yaml[tag=infinispan-crossdc]
 <11> The remote site's name, in this case  `{site-b}`.
 <12> The namespace of the {jdgserver_name} cluster from the remote site.
 <13> The {ocp} API URL for the remote site.
-<14> The secret with the access toke to authenticate into the remote site.
+<14> The secret with the access token to authenticate into the remote site.
 +
 For `{site-b}`, the `Infinispan` CR looks similar to the above.
 Note the differences in point 4, 11 and 13.

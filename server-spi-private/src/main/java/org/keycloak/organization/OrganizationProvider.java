@@ -16,6 +16,7 @@
  */
 package org.keycloak.organization;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.keycloak.models.IdentityProviderModel;
@@ -72,8 +73,8 @@ public interface OrganizationProvider extends Provider {
      * @param exact if {@code true}, the organizations will be searched using exact match for the {@code search} param - i.e.
      *              either the organization name or one of its domains must match exactly the {@code search} param. If false,
      *              the method returns all organizations whose name or (domains) partially match the {@code search} param.
-     * @param first index of the first element (pagination offset).
-     * @param max the maximum number of results.
+     * @param first the position of the first result to be processed (pagination offset). Ignored if negative or {@code null}.
+     * @param max the maximum number of results to be returned. Ignored if negative or {@code null}.
      * @return a {@link Stream} of the matched organizations. Never returns {@code null}.
      */
     Stream<OrganizationModel> getAllStream(String search, Boolean exact, Integer first, Integer max);
@@ -103,12 +104,12 @@ public interface OrganizationProvider extends Provider {
     boolean addMember(OrganizationModel organization, UserModel user);
 
     /**
-     * Returns the members of a given {@link OrganizationModel}.
+     * Returns the members of a given {@link OrganizationModel} filtered according to the specified parameters.
      *
      * @param organization the organization
      * @return Stream of the members. Never returns {@code null}.
      */
-    Stream<UserModel> getMembersStream(OrganizationModel organization);
+    Stream<UserModel> getMembersStream(OrganizationModel organization, String search, Boolean exact, Integer first, Integer max);
 
     /**
      * Returns the member of the {@link OrganizationModel} by its {@code id}.
@@ -140,15 +141,16 @@ public interface OrganizationProvider extends Provider {
      * @param organization the organization
      * @return The identityProvider associated with a given {@code organization} or {@code null} if there is none.
      */
-    IdentityProviderModel getIdentityProvider(OrganizationModel organization);
+    Stream<IdentityProviderModel> getIdentityProviders(OrganizationModel organization);
 
     /**
      * Removes the link between the given {@link OrganizationModel} and identity provider associated with it if such a link exists.
      * 
      * @param organization the organization
+     * @param identityProvider the identity provider
      * @return {@code true} if the link was removed, {@code false} otherwise
      */
-    boolean removeIdentityProvider(OrganizationModel organization);
+    boolean removeIdentityProvider(OrganizationModel organization, IdentityProviderModel identityProvider);
 
     /**
      * Indicates if the current realm supports organization.

@@ -91,9 +91,9 @@ public class OrganizationResource {
     @Operation( summary = "Return a paginated list of organizations filtered according to the specified parameters")
     public Stream<OrganizationRepresentation> search(
             @Parameter(description = "A String representing either an organization name or domain") @QueryParam("search") String search,
-            @Parameter(description = "Boolean which defines whether the params \"search\" must match exactly or not") @QueryParam("exact") Boolean exact,
-            @Parameter(description = "The position of the first result to be returned (pagination offset)") @QueryParam("first") @DefaultValue("0") Integer first,
-            @Parameter(description = "The maximum number of results that are to be returned. Defaults to 10") @QueryParam("max") @DefaultValue("10") Integer max
+            @Parameter(description = "Boolean which defines whether the param 'search' must match exactly or not") @QueryParam("exact") Boolean exact,
+            @Parameter(description = "The position of the first result to be processed (pagination offset)") @QueryParam("first") @DefaultValue("0") Integer first,
+            @Parameter(description = "The maximum number of results to be returned - defaults to 10") @QueryParam("max") @DefaultValue("10") Integer max
             ) {
         auth.realm().requireManageRealm();
         return provider.getAllStream(search, exact, first, max).map(this::toRepresentation);
@@ -142,9 +142,9 @@ public class OrganizationResource {
         return new OrganizationMemberResource(session, organization, auth, adminEvent);
     }
 
-    @Path("{id}/identity-provider")
-    public OrganizationIdentityProviderResource identityProvider(@PathParam("id") String id) {
-        return new OrganizationIdentityProviderResource(session, getOrganization(id), auth, adminEvent);
+    @Path("{id}/identity-providers")
+    public OrganizationIdentityProvidersResource identityProvider(@PathParam("id") String id) {
+        return new OrganizationIdentityProvidersResource(session, getOrganization(id), auth, adminEvent);
     }
     
     private OrganizationModel getOrganization(String id) {
@@ -173,6 +173,8 @@ public class OrganizationResource {
 
         rep.setId(model.getId());
         rep.setName(model.getName());
+        rep.setEnabled(model.isEnabled());
+        rep.setDescription(model.getDescription());
         rep.setAttributes(model.getAttributes());
         model.getDomains().filter(Objects::nonNull).map(this::toRepresentation)
                 .forEach(rep::addDomain);
@@ -193,6 +195,8 @@ public class OrganizationResource {
         }
 
         model.setName(rep.getName());
+        model.setEnabled(rep.isEnabled());
+        model.setDescription(rep.getDescription());
         model.setAttributes(rep.getAttributes());
         model.setDomains(Optional.ofNullable(rep.getDomains()).orElse(Set.of()).stream()
                     .filter(Objects::nonNull)
