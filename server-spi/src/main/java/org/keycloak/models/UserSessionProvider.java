@@ -17,6 +17,7 @@
 
 package org.keycloak.models;
 
+import org.keycloak.migration.MigrationModel;
 import org.keycloak.provider.Provider;
 
 import java.util.Collection;
@@ -198,10 +199,17 @@ public interface UserSessionProvider extends Provider {
      */
     Stream<UserSessionModel> getOfflineUserSessionsStream(RealmModel realm, ClientModel client, Integer firstResult, Integer maxResults);
 
-    /** Triggered by persister during pre-load. It imports authenticatedClientSessions too **/
+    /** Triggered by persister during pre-load. It imports authenticatedClientSessions too.
+     *
+     * @deprecated Deprecated as offline session preloading was removed in KC25. This method will be removed in KC27.
+     */
+    @Deprecated(forRemoval = true)
     void importUserSessions(Collection<UserSessionModel> persistentUserSessions, boolean offline);
 
     void close();
 
     int getStartupTime(RealmModel realm);
+
+    default void migrate(String modelVersion) {
+    }
 }

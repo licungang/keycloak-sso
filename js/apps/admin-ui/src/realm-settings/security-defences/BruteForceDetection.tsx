@@ -3,17 +3,19 @@ import {
   ActionGroup,
   Button,
   FormGroup,
-  Select,
   SelectOption,
-  SelectVariant,
 } from "@patternfly/react-core";
 import { useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { HelpItem, NumberControl } from "ui-shared";
+import { HelpItem, NumberControl } from "@keycloak/keycloak-ui-shared";
 import { FormAccess } from "../../components/form/FormAccess";
 import { convertToFormValues } from "../../util";
 import { Time } from "./Time";
+import {
+  KeycloakSelect,
+  SelectVariant,
+} from "../../components/select/KeycloakSelect";
 
 type BruteForceDetectionProps = {
   realm: RealmRepresentation;
@@ -84,10 +86,10 @@ export const BruteForceDetection = ({
             />
           }
         >
-          <Select
+          <KeycloakSelect
             toggleId="kc-brute-force-mode"
             onToggle={() => setIsBruteForceModeOpen(!isBruteForceModeOpen)}
-            onSelect={(_, value) => {
+            onSelect={(value) => {
               switch (value as BruteForceMode) {
                 case BruteForceMode.Disabled:
                   form.setValue("bruteForceProtected", false);
@@ -124,7 +126,7 @@ export const BruteForceDetection = ({
                 {t(`bruteForceMode.${mode}`)}
               </SelectOption>
             ))}
-          </Select>
+          </KeycloakSelect>
         </FormGroup>
         {bruteForceMode !== BruteForceMode.Disabled && (
           <>

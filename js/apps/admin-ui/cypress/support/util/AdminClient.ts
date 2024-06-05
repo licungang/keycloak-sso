@@ -1,12 +1,13 @@
 import KeycloakAdminClient from "@keycloak/keycloak-admin-client";
 import type ClientRepresentation from "@keycloak/keycloak-admin-client/lib/defs/clientRepresentation";
 import type ClientScopeRepresentation from "@keycloak/keycloak-admin-client/lib/defs/clientScopeRepresentation";
+import OrganizationRepresentation from "@keycloak/keycloak-admin-client/lib/defs/organizationRepresentation";
 import type RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
 import type RoleRepresentation from "@keycloak/keycloak-admin-client/lib/defs/roleRepresentation";
 import type { RoleMappingPayload } from "@keycloak/keycloak-admin-client/lib/defs/roleRepresentation";
 import type { UserProfileConfig } from "@keycloak/keycloak-admin-client/lib/defs/userProfileMetadata";
 import type UserRepresentation from "@keycloak/keycloak-admin-client/lib/defs/userRepresentation";
-import { Credentials } from "libs/keycloak-admin-client/lib/utils/auth";
+import { Credentials } from "@keycloak/keycloak-admin-client/lib/utils/auth";
 import { merge } from "lodash-es";
 
 class AdminClient {
@@ -16,12 +17,14 @@ class AdminClient {
   });
 
   #login() {
-    return this.#client.auth({
-      username: "admin",
-      password: "admin",
-      grantType: "password",
-      clientId: "admin-cli",
-    });
+    return this.inRealm("master", () =>
+      this.#client.auth({
+        username: "admin",
+        password: "admin",
+        grantType: "password",
+        clientId: "admin-cli",
+      }),
+    );
   }
 
   async auth(credentials: Credentials) {
@@ -351,6 +354,27 @@ class AdminClient {
         }),
       ),
     );
+  }
+
+  async inRealm<T>(realm: string, fn: () => Promise<T>) {
+    const prevRealm = this.#client.realmName;
+    this.#client.realmName = realm;
+    try {
+      return await fn();
+    } finally {
+      this.#client.realmName = prevRealm;
+    }
+  }
+
+  async createOrganization(org: OrganizationRepresentation) {
+    await this.#login();
+    await this.#client.organizations.create(org);
+  }
+
+  async deleteOrganization(name: string) {
+    await this.#login();
+    const { id } = (await this.#client.organizations.find({ search: name }))[0];
+    await this.#client.organizations.delById({ id: id! });
   }
 }
 

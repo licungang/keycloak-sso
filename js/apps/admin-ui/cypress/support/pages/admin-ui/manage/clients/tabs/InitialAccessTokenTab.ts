@@ -6,7 +6,7 @@ export default class InitialAccessTokenTab extends CommonPage {
   #emptyAction = "no-initial-access-tokens-empty-action";
 
   #expirationNumberInput = "expiration";
-  #expirationText = "#expiration-helper";
+  #expirationText = ".pf-v5-c-helper-text__item-text";
   #countInput = "#count input";
   #countPlusBtn = '#count [aria-label="Plus"]';
   #saveBtn = "save";
@@ -27,7 +27,7 @@ export default class InitialAccessTokenTab extends CommonPage {
   }
 
   getFirstId(callback: (id: string) => void) {
-    cy.get('tbody > tr:first-child > [data-label="ID"]')
+    cy.get("tbody > tr:first-child > td:first-child")
       .invoke("text")
       .then((text) => {
         callback(text);

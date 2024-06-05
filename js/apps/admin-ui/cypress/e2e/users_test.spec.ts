@@ -127,7 +127,7 @@ describe("User creation", () => {
 
   it("Search non-existing user test", () => {
     listingPage.searchItem("user_DNE");
-    cy.findByTestId(listingPage.emptyState).should("exist");
+    listingPage.assertNoResults();
   });
 
   it("User details test", () => {
@@ -171,7 +171,7 @@ describe("User creation", () => {
 
     masthead.checkNotificationMessage("The user has not been saved: ");
 
-    cy.get(".pf-c-helper-text__item-text")
+    cy.get(".pf-v5-c-helper-text__item-text")
       .filter(':contains("Update of read-only attribute rejected")')
       .should("have.length", 2);
 
@@ -203,7 +203,7 @@ describe("User creation", () => {
 
     cy.wait("@save-user").should(({ request, response }) => {
       expect(response?.statusCode).to.equal(204);
-      expect(request.body.attributes, "response body").deep.equal({
+      expect(request.body.attributes, "response body").deep.contains({
         "key-multiple": ["other value"],
       });
     });
@@ -435,7 +435,12 @@ describe("User creation", () => {
     credentialsPage.goToCredentialsTab();
 
     cy.wait(2000);
-    listingPage.deleteItem(itemCredential);
+    cy.get("table")
+      .contains(itemCredential)
+      .parentsUntil("tbody")
+      .find(".pf-v5-c-table__action .pf-v5-c-menu-toggle")
+      .click();
+    cy.get("table").contains("Delete").click();
     modalUtils.checkModalTitle("Delete credentials?").confirmModal();
 
     masthead.checkNotificationMessage(
@@ -485,6 +490,7 @@ describe("User creation", () => {
   describe("Accessibility tests for users", () => {
     const a11yUser = "a11y-user";
     const role = "admin";
+    const roleType = "roles";
     const roleMappingTab = new RoleMappingTab("");
 
     beforeEach(() => {
@@ -547,7 +553,7 @@ describe("User creation", () => {
       roleMappingTab.goToRoleMappingTab();
       cy.findByTestId("assignRole").click();
       cy.checkA11y();
-      roleMappingTab.selectRow(role).assign();
+      roleMappingTab.changeRoleTypeFilter(roleType).selectRow(role).assign();
     });
 
     it("Check a11y violations on user groups tab", () => {

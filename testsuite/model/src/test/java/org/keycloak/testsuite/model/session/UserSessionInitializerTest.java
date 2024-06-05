@@ -17,10 +17,13 @@
 
 package org.keycloak.testsuite.model.session;
 
+import org.hamcrest.Matchers;
 import org.infinispan.Cache;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
+import org.keycloak.common.Profile;
 import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.Constants;

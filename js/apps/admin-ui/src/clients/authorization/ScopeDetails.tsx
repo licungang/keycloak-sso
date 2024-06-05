@@ -11,8 +11,8 @@ import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-import { TextControl } from "ui-shared";
-import { adminClient } from "../../admin-client";
+import { TextControl } from "@keycloak/keycloak-ui-shared";
+import { useAdminClient } from "../../admin-client";
 import { useAlerts } from "../../components/alert/Alerts";
 import { FormAccess } from "../../components/form/FormAccess";
 import { ViewHeader } from "../../components/view-header/ViewHeader";
@@ -26,6 +26,8 @@ import { DeleteScopeDialog } from "./DeleteScopeDialog";
 type FormFields = Omit<ScopeRepresentation, "resources">;
 
 export default function ScopeDetails() {
+  const { adminClient } = useAdminClient();
+
   const { t } = useTranslation();
   const { id, scopeId, realm } = useParams<ScopeDetailsParams>();
   const navigate = useNavigate();
@@ -136,7 +138,7 @@ export default function ScopeDetails() {
               labelIcon={t("iconUriHelp")}
             />
             <ActionGroup>
-              <div className="pf-u-mt-md">
+              <div className="pf-v5-u-mt-md">
                 <Button
                   variant={ButtonVariant.primary}
                   type="submit"

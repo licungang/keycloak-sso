@@ -82,7 +82,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.keycloak.OAuth2Constants;
 import org.keycloak.OAuthErrorException;
-import org.keycloak.adapters.AdapterUtils;
 import org.keycloak.admin.client.resource.ClientResource;
 import org.keycloak.authentication.authenticators.client.ClientIdAndSecretAuthenticator;
 import org.keycloak.authentication.authenticators.client.JWTClientAuthenticator;
@@ -304,7 +303,6 @@ public abstract class AbstractClientPoliciesTest extends AbstractKeycloakTest {
                             createClientScopesConditionConfig(ClientScopesConditionFactory.OPTIONAL, Arrays.asList(SAMPLE_CLIENT_ROLE)))
                         .addProfile("ordinal-test-profile")
                         .addProfile("lack-of-builtin-field-test-profile")
-                        .addProfile("ordinal-test-profile")
 
                     .toRepresentation();
 
@@ -503,7 +501,7 @@ public abstract class AbstractClientPoliciesTest extends AbstractKeycloakTest {
 
     private JsonWebToken createRequestToken(String clientId, String realmInfoUrl) {
         JsonWebToken reqToken = new JsonWebToken();
-        reqToken.id(AdapterUtils.generateId());
+        reqToken.id(KeycloakModelUtils.generateId());
         reqToken.issuer(clientId);
         reqToken.subject(clientId);
         reqToken.audience(realmInfoUrl);
@@ -649,7 +647,7 @@ public abstract class AbstractClientPoliciesTest extends AbstractKeycloakTest {
 
     // OAuth2 protocol operation
 
-    protected void doIntrospectAccessToken(OAuthClient.AccessTokenResponse tokenRes, String username, String clientId, String clientSecret) throws IOException {
+    protected void doIntrospectAccessToken(OAuthClient.AccessTokenResponse tokenRes, String username, String clientId, String sessionId, String clientSecret) throws IOException {
         String tokenResponse = oauth.introspectAccessTokenWithClientCredential(clientId, clientSecret, tokenRes.getAccessToken());
         JsonNode jsonNode = objectMapper.readTree(tokenResponse);
         assertEquals(true, jsonNode.get("active").asBoolean());
@@ -659,7 +657,7 @@ public abstract class AbstractClientPoliciesTest extends AbstractKeycloakTest {
         assertEquals(true, rep.isActive());
         assertEquals(clientId, rep.getClientId());
         assertEquals(clientId, rep.getIssuedFor());
-        events.expect(EventType.INTROSPECT_TOKEN).client(clientId).user((String)null).clearDetails().assertEvent();
+        events.expect(EventType.INTROSPECT_TOKEN).client(clientId).session(sessionId).user((String)null).clearDetails().assertEvent();
     }
 
     protected void doTokenRevoke(String refreshToken, String clientId, String clientSecret, String userId, boolean isOfflineAccess) throws IOException {
@@ -1531,7 +1529,7 @@ public abstract class AbstractClientPoliciesTest extends AbstractKeycloakTest {
         assertEquals(sessionId, refreshedRefreshToken.getSessionState());
         assertEquals(findUserByUsername(adminClient.realm(REALM_NAME), userName).getId(), refreshedToken.getSubject());
 
-        doIntrospectAccessToken(refreshResponse, userName, clientId, clientSecret);
+        doIntrospectAccessToken(refreshResponse, userName, clientId, sessionId, clientSecret);
 
         doTokenRevoke(refreshResponse.getRefreshToken(), clientId, clientSecret, userId, false);
     }

@@ -3,14 +3,16 @@ import type { UserProfileConfig } from "@keycloak/keycloak-admin-client/lib/defs
 import {
   Button,
   ButtonVariant,
-  Dropdown,
-  DropdownItem,
   InputGroup,
-  KebabToggle,
   SearchInput,
   ToolbarItem,
+  InputGroupItem,
+  Dropdown,
+  MenuToggle,
+  DropdownList,
+  DropdownItem,
 } from "@patternfly/react-core";
-import { ArrowRightIcon } from "@patternfly/react-icons";
+import { ArrowRightIcon, EllipsisVIcon } from "@patternfly/react-icons";
 import { ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -76,13 +78,15 @@ export function UserDataTableToolbarItems({
     return (
       <ToolbarItem>
         <InputGroup>
-          <SearchDropdown
-            searchType={searchType}
-            onSelect={(searchType) => {
-              clearAllFilters();
-              setSearchType(searchType);
-            }}
-          />
+          <InputGroupItem>
+            <SearchDropdown
+              searchType={searchType}
+              onSelect={(searchType) => {
+                clearAllFilters();
+                setSearchType(searchType);
+              }}
+            />
+          </InputGroupItem>
           {searchType === "default" && defaultSearchInput()}
           {searchType === "attribute" && attributeSearchInput()}
         </InputGroup>
@@ -94,6 +98,7 @@ export function UserDataTableToolbarItems({
     return (
       <ToolbarItem>
         <SearchInput
+          data-testid="table-search-input"
           placeholder={t("searchForUser")}
           aria-label={t("search")}
           value={searchUser}
@@ -164,10 +169,20 @@ export function UserDataTableToolbarItems({
   ) : (
     <ToolbarItem>
       <Dropdown
-        toggle={<KebabToggle onToggle={(open) => setKebabOpen(open)} />}
+        toggle={(ref) => (
+          <MenuToggle
+            ref={ref}
+            isExpanded={kebabOpen}
+            variant="plain"
+            onClick={() => setKebabOpen(!kebabOpen)}
+          >
+            <EllipsisVIcon />
+          </MenuToggle>
+        )}
         isOpen={kebabOpen}
-        isPlain
-        dropdownItems={[
+        shouldFocusToggleOnSelect
+      >
+        <DropdownList>
           <DropdownItem
             key="deleteUser"
             component="button"
@@ -178,7 +193,7 @@ export function UserDataTableToolbarItems({
             }}
           >
             {t("deleteUser")}
-          </DropdownItem>,
+          </DropdownItem>
 
           <DropdownItem
             key="unlock"
@@ -189,9 +204,9 @@ export function UserDataTableToolbarItems({
             }}
           >
             {t("unlockAllUsers")}
-          </DropdownItem>,
-        ]}
-      />
+          </DropdownItem>
+        </DropdownList>
+      </Dropdown>
     </ToolbarItem>
   );
 

@@ -13,9 +13,8 @@ import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-
-import { TextControl } from "ui-shared";
-import { adminClient } from "../../admin-client";
+import { TextControl } from "@keycloak/keycloak-ui-shared";
+import { useAdminClient } from "../../admin-client";
 import { useAlerts } from "../../components/alert/Alerts";
 import { useConfirmDialog } from "../../components/confirm-dialog/ConfirmDialog";
 import { DynamicComponents } from "../../components/dynamic/DynamicComponents";
@@ -43,6 +42,8 @@ export type Role = RoleRepresentation & {
 };
 
 export default function AddMapper() {
+  const { adminClient } = useAdminClient();
+
   const { t } = useTranslation();
 
   const form = useForm<IdPMapperRepresentationWithAttributes>({
@@ -152,7 +153,7 @@ export default function AddMapper() {
 
       setMapperTypes(mappers);
     },
-    [],
+    [id],
   );
 
   const setupForm = (mapper: IdentityProviderMapperRepresentation) => {
@@ -194,7 +195,7 @@ export default function AddMapper() {
         role="manage-identity-providers"
         isHorizontal
         onSubmit={handleSubmit(save)}
-        className="pf-u-mt-lg"
+        className="pf-v5-u-mt-lg"
       >
         <FormProvider {...form}>
           {id && (

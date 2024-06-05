@@ -3,7 +3,11 @@ import { ExpandableSection } from "@patternfly/react-core";
 import { useState } from "react";
 import { FormProvider, useFormContext, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { NumberControl, SelectControl, TextControl } from "ui-shared";
+import {
+  NumberControl,
+  SelectControl,
+  TextControl,
+} from "@keycloak/keycloak-ui-shared";
 import { DefaultSwitchControl } from "../../components/SwitchControl";
 
 import "./discovery-settings.css";
@@ -44,7 +48,7 @@ const Fields = ({ readOnly }: DescriptorSettingsProps) => {
   });
 
   return (
-    <div className="pf-c-form pf-m-horizontal">
+    <div className="pf-v5-c-form pf-m-horizontal">
       <FormProvider {...form}>
         <TextControl
           name="config.entityId"
@@ -282,7 +286,7 @@ const Fields = ({ readOnly }: DescriptorSettingsProps) => {
             {useMetadataDescriptorUrl !== "true" && (
               <TextControl
                 name="config.signingCertificate"
-                label="validatingX509Certs"
+                label={t("validatingX509Certs")}
                 readOnly={readOnly}
               />
             )}
@@ -333,7 +337,7 @@ export const DescriptorSettings = ({ readOnly }: DescriptorSettingsProps) => {
     <ExpandableSection
       className="keycloak__discovery-settings__metadata"
       toggleText={isExpanded ? t("hideMetaData") : t("showMetaData")}
-      onToggle={(isOpen) => setIsExpanded(isOpen)}
+      onToggle={(_event, isOpen) => setIsExpanded(isOpen)}
       isExpanded={isExpanded}
     >
       <Fields readOnly={readOnly} />

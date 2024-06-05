@@ -20,6 +20,7 @@ package org.keycloak.models;
 
 import java.util.Map;
 
+import org.keycloak.common.util.Time;
 import org.keycloak.sessions.CommonClientSessionModel;
 
 /**
@@ -49,6 +50,11 @@ public interface AuthenticatedClientSessionModel extends CommonClientSessionMode
     }
 
     int getTimestamp();
+
+    /**
+     * Set the timestamp for the client session.
+     * If the timestamp is smaller or equal than the current timestamp, the operation is ignored.
+     */
     void setTimestamp(int timestamp);
 
     /**
@@ -67,4 +73,20 @@ public interface AuthenticatedClientSessionModel extends CommonClientSessionMode
     void setNote(String name, String value);
     void removeNote(String name);
     Map<String, String> getNotes();
+
+    default void restartClientSession() {
+        setAction(null);
+        setRedirectUri(null);
+        setCurrentRefreshToken(null);
+        setCurrentRefreshTokenUseCount(-1);
+        setTimestamp(Time.currentTime());
+        for (String note : getNotes().keySet()) {
+            if (!AuthenticatedClientSessionModel.USER_SESSION_STARTED_AT_NOTE.equals(note)
+                    && !AuthenticatedClientSessionModel.STARTED_AT_NOTE.equals(note)
+                    && !AuthenticatedClientSessionModel.USER_SESSION_REMEMBER_ME_NOTE.equals(note)) {
+                removeNote(note);
+            }
+        }
+        getNotes().put(AuthenticatedClientSessionModel.STARTED_AT_NOTE, String.valueOf(getTimestamp()));
+    }
 }

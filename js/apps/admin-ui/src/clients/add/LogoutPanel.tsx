@@ -1,7 +1,7 @@
 import { FormGroup, Switch } from "@patternfly/react-core";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { HelpItem, TextControl } from "ui-shared";
+import { HelpItem, TextControl } from "@keycloak/keycloak-ui-shared";
 
 import { FixedButtonsGroup } from "../../components/form/FixedButtonGroup";
 import { FormAccess } from "../../components/form/FormAccess";
@@ -116,7 +116,7 @@ export const LogoutPanel = ({
                   label={t("on")}
                   labelOff={t("off")}
                   isChecked={field.value === "true"}
-                  onChange={(value) => field.onChange(value.toString())}
+                  onChange={(_event, value) => field.onChange(value.toString())}
                   aria-label={t("backchannelLogoutSessionRequired")}
                 />
               )}
@@ -145,7 +145,7 @@ export const LogoutPanel = ({
                   label={t("on")}
                   labelOff={t("off")}
                   isChecked={field.value === "true"}
-                  onChange={(value) => field.onChange(value.toString())}
+                  onChange={(_event, value) => field.onChange(value.toString())}
                   aria-label={t("backchannelLogoutRevokeOfflineSessions")}
                 />
               )}

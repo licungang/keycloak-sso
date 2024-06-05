@@ -133,7 +133,6 @@
         <app.server.keystore>${app.server.keystore.dir}/adapter.jks</app.server.keystore>
         <app.server.keystore.password>secret</app.server.keystore.password>
         <app.server.jvm.args.extra/>
-        <tomcat.javax.net.ssl.properties/>
 
         <cache.server.legacy>false</cache.server.legacy>
         <cache.server.home>${containers.home}/cache-server-${cache.server}</cache.server.home>
@@ -216,15 +215,15 @@
         <ieDriverArch>Win32</ieDriverArch>
         <ieDriverVersion/>
         <js.browser>chrome</js.browser>
-        <js.chromeArguments>--headless</js.chromeArguments>
+        <js.chromeArguments>--headless --ignore-ssl-errors=yes --ignore-certificate-errors</js.chromeArguments>
         <htmlUnitBrowserVersion>chrome</htmlUnitBrowserVersion>
         <firefox_binary/> <!-- the path is set automatically based on the OS -->
         <firefoxLegacyDriver>false</firefoxLegacyDriver>
         <firefoxDriverVersion/>
         <firefoxUserPreferences/>
-        <firefoxHeadless>true</firefoxHeadless>
+        <firefoxArguments>-headless</firefoxArguments>
         <chromeBinary/>
-        <chromeArguments>--headless --window-size=1920,1080 --remote-allow-origins=*</chromeArguments>
+        <chromeArguments>--headless --window-size=1920,1080 --remote-allow-origins=* --ignore-ssl-errors=yes --ignore-certificate-errors</chromeArguments>
         <chromeDriverVersion/>
 
         <appium.platformName/>
@@ -291,7 +290,7 @@
                                         <outputDirectory>${containers.home}/auth-server-undertow</outputDirectory>
                                     </artifactItem>
                                 </artifactItems>
-                                <includes>*.jks,*.crt,*.truststore,*.crl,*.key,certs/clients/*</includes>
+                                <includes>*.jks,*.p12,*.crt,*.truststore,*.crl,*.key,certs/clients/*</includes>
                                 <skip>${auth.server.undertow.skip.unpack}</skip>
                             </configuration>
                         </execution>
@@ -553,7 +552,6 @@
                             <app.server.1.jboss.jvm.debug.args>${app.server.1.jboss.jvm.debug.args}</app.server.1.jboss.jvm.debug.args>
                             <app.server.2.jboss.jvm.debug.args>${app.server.2.jboss.jvm.debug.args}</app.server.2.jboss.jvm.debug.args>
                             <app.server.jvm.args.extra>${app.server.jvm.args.extra}</app.server.jvm.args.extra>
-                            <tomcat.javax.net.ssl.properties>${tomcat.javax.net.ssl.properties}</tomcat.javax.net.ssl.properties>
 
                             <frontend.console.output>${frontend.console.output}</frontend.console.output>
                             <backends.console.output>${backend.console.output}</backends.console.output>
@@ -602,7 +600,7 @@
                             <firefoxLegacyDriver>${firefoxLegacyDriver}</firefoxLegacyDriver>
                             <firefoxDriverVersion>${firefoxDriverVersion}</firefoxDriverVersion>
                             <firefoxUserPreferences>${firefoxUserPreferences}</firefoxUserPreferences>
-                            <firefoxHeadless>${firefoxHeadless}</firefoxHeadless>
+                            <firefoxArguments>${firefoxArguments}</firefoxArguments>
 
                             <appium.platformName>${appium.platformName}</appium.platformName>
                             <appium.deviceName>${appium.deviceName}</appium.deviceName>
@@ -1600,13 +1598,17 @@
                             <groupId>com.google.guava</groupId>
                             <artifactId>guava</artifactId>
                         </exclusion>
+                        <exclusion>
+                            <groupId>org.codehaus.groovy</groupId>
+                            <artifactId>*</artifactId>
+                        </exclusion>
                     </exclusions>
                 </dependency>
 
                 <dependency>
                     <groupId>net.bytebuddy</groupId>
                     <artifactId>byte-buddy</artifactId>
-                    <version>1.12.18</version>
+                    <version>${byte-buddy.version}</version>
                 </dependency>
 
                 <dependency>
@@ -1623,11 +1625,6 @@
                 <dependency>
                     <groupId>org.jboss.arquillian.protocol</groupId>
                     <artifactId>arquillian-protocol-servlet</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>org.jboss.arquillian.extension</groupId>
-                    <artifactId>arquillian-phantom-driver</artifactId>
-                    <version>1.2.1.Final</version>
                 </dependency>
                 <dependency>
                     <groupId>org.jboss.arquillian.graphene</groupId>
@@ -1817,7 +1814,7 @@
                 </dependency>
                 <dependency>
                     <groupId>org.infinispan</groupId>
-                    <artifactId>infinispan-core-jakarta</artifactId>
+                    <artifactId>infinispan-core</artifactId>
                 </dependency>
 
                 <dependency>
@@ -1852,13 +1849,6 @@
                     <type>zip</type>
                 </dependency>
 
-                <!-- Fuse adapter dependency -->
-                <dependency>
-                    <groupId>org.osgi</groupId>
-                    <artifactId>org.osgi.enterprise</artifactId>
-                    <scope>provided</scope>
-                </dependency>
-
                 <!-- Needed for infinispan statistics -->
                 <dependency>
                     <groupId>org.eclipse.microprofile.metrics</groupId>
@@ -1866,17 +1856,6 @@
                 </dependency>
 
             </dependencies>
-
-            <dependencyManagement>
-                <dependencies>
-                    <!-- we need to specify the correct version because of conflict in arquillian-drone-webdriver-depchain -->
-                    <dependency>
-                        <groupId>org.seleniumhq.selenium</groupId>
-                        <artifactId>htmlunit-driver</artifactId>
-                        <version>2.27</version>
-                    </dependency>
-                </dependencies>
-            </dependencyManagement>
 
             <build>
                 <plugins>
@@ -2082,23 +2061,11 @@
                 <browser>firefox</browser>
                 <js.browser>firefox</js.browser>
                 <firefoxUserPreferences>${project.build.directory}/dependency/firefox-cookies-prefs.js</firefoxUserPreferences>
-                <firefoxHeadless>true</firefoxHeadless>
+                <firefoxArguments>-headless</firefoxArguments>
                 <browser.strict.cookies>true</browser.strict.cookies>
             </properties>
         </profile>
 
-        <profile>
-            <id>set-javax.net.ssl-properties-for-tomcat</id>
-            <activation>
-                <property>
-                    <name>app.server.ssl.required</name>
-                </property>
-            </activation>
-            <properties>
-                <tomcat.javax.net.ssl.properties>-Djavax.net.ssl.trustStore=${app.server.home}/lib/keycloak.truststore -Djavax.net.ssl.trustStorePassword=secret</tomcat.javax.net.ssl.properties>
-            </properties>
-        </profile>
-        
         <profile>
             <id>cache-auth</id>
             <properties>

@@ -6,7 +6,7 @@ import {
   useWatch,
 } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { HelpItem, TextControl } from "ui-shared";
+import { HelpItem, TextControl } from "@keycloak/keycloak-ui-shared";
 import { FormAccess } from "../../components/form/FormAccess";
 import { WizardSectionHeader } from "../../components/wizard-section-header/WizardSectionHeader";
 
@@ -60,7 +60,7 @@ export const LdapSettingsKerberosIntegration = ({
                 id="kc-allow-kerberos-authentication"
                 data-testid="allow-kerberos-auth"
                 isDisabled={false}
-                onChange={(value) => field.onChange([`${value}`])}
+                onChange={(_event, value) => field.onChange([`${value}`])}
                 isChecked={field.value[0] === "true"}
                 label={t("on")}
                 labelOff={t("off")}
@@ -119,7 +119,7 @@ export const LdapSettingsKerberosIntegration = ({
                     id="kc-debug"
                     data-testid="debug"
                     isDisabled={false}
-                    onChange={(value) => field.onChange([`${value}`])}
+                    onChange={(_event, value) => field.onChange([`${value}`])}
                     isChecked={field.value[0] === "true"}
                     label={t("on")}
                     labelOff={t("off")}
@@ -150,7 +150,7 @@ export const LdapSettingsKerberosIntegration = ({
                 id="kc-use-kerberos-password-authentication"
                 data-testid="use-kerberos-pw-auth"
                 isDisabled={false}
-                onChange={(value) => field.onChange([`${value}`])}
+                onChange={(_event, value) => field.onChange([`${value}`])}
                 isChecked={field.value[0] === "true"}
                 label={t("on")}
                 labelOff={t("off")}

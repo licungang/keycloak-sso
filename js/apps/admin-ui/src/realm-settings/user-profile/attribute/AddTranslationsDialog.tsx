@@ -1,4 +1,4 @@
-import type RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
+import { TextControl } from "@keycloak/keycloak-ui-shared";
 import {
   Button,
   Flex,
@@ -12,20 +12,24 @@ import {
   TextContent,
   TextVariants,
 } from "@patternfly/react-core";
-import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { SearchIcon } from "@patternfly/react-icons";
+import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { useEffect, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { useAdminClient } from "../../../admin-client";
+import { ListEmptyState } from "../../../components/list-empty-state/ListEmptyState";
+import { PaginatingTableToolbar } from "../../../components/table-toolbar/PaginatingTableToolbar";
 import { useRealm } from "../../../context/realm-context/RealmContext";
 import { useWhoAmI } from "../../../context/whoami/WhoAmI";
-import { adminClient } from "../../../admin-client";
-import { PaginatingTableToolbar } from "../../../components/table-toolbar/PaginatingTableToolbar";
-import { ListEmptyState } from "../../../components/list-empty-state/ListEmptyState";
-import { useFetch } from "../../../utils/useFetch";
 import { localeToDisplayName } from "../../../util";
-import { DEFAULT_LOCALE } from "../../../i18n/i18n";
-import { TextControl } from "ui-shared";
+import { useFetch } from "../../../utils/useFetch";
+import useLocale from "../../../utils/useLocale";
+
+export type TranslationsType =
+  | "displayName"
+  | "displayHeader"
+  | "displayDescription";
 
 type TranslationForm = {
   locale: string;
@@ -39,6 +43,8 @@ type Translations = {
 
 export type AddTranslationsDialogProps = {
   translationKey: string;
+  translations: Translations;
+  type: TranslationsType;
   onCancel: () => void;
   toggleDialog: () => void;
   onTranslationsAdded: (translations: Translations) => void;
@@ -46,17 +52,23 @@ export type AddTranslationsDialogProps = {
 
 export const AddTranslationsDialog = ({
   translationKey,
+  translations,
+  type,
   onCancel,
   toggleDialog,
   onTranslationsAdded,
 }: AddTranslationsDialogProps) => {
+  const { adminClient } = useAdminClient();
   const { t } = useTranslation();
-  const { realm: realmName } = useRealm();
-  const [realm, setRealm] = useState<RealmRepresentation>();
+  const { realm: realmName, realmRepresentation: realm } = useRealm();
+  const combinedLocales = useLocale();
   const { whoAmI } = useWhoAmI();
   const [max, setMax] = useState(10);
   const [first, setFirst] = useState(0);
   const [filter, setFilter] = useState("");
+  const [defaultTranslations, setDefaultTranslations] = useState<{
+    [key: string]: string;
+  }>({});
 
   const form = useForm<{
     key: string;
@@ -72,30 +84,9 @@ export const AddTranslationsDialog = ({
     formState: { isValid },
   } = form;
 
-  useFetch(
-    () => adminClient.realms.findOne({ realm: realmName }),
-    (realm) => {
-      if (!realm) {
-        throw new Error(t("notFound"));
-      }
-      setRealm(realm);
-    },
-    [],
-  );
-
-  const defaultSupportedLocales = useMemo(() => {
-    return realm?.supportedLocales!.length
-      ? realm.supportedLocales
-      : [DEFAULT_LOCALE];
-  }, [realm]);
-
   const defaultLocales = useMemo(() => {
     return realm?.defaultLocale!.length ? [realm.defaultLocale] : [];
   }, [realm]);
-
-  const combinedLocales = useMemo(() => {
-    return Array.from(new Set([...defaultLocales, ...defaultSupportedLocales]));
-  }, [defaultLocales, defaultSupportedLocales]);
 
   const filteredLocales = useMemo(() => {
     return combinedLocales.filter((locale) =>
@@ -105,15 +96,65 @@ export const AddTranslationsDialog = ({
     );
   }, [combinedLocales, filter, whoAmI]);
 
+  useFetch(
+    async () => {
+      const selectedLocales = combinedLocales.map((locale) => locale);
+
+      const results = await Promise.all(
+        selectedLocales.map((selectedLocale) =>
+          adminClient.realms.getRealmLocalizationTexts({
+            realm: realmName,
+            selectedLocale,
+          }),
+        ),
+      );
+
+      const translations = results.map((result, index) => {
+        const locale = selectedLocales[index];
+        const value = result[translationKey];
+        return {
+          key: translationKey,
+          translations: [{ locale, value }],
+        };
+      });
+
+      const defaultValuesMap = translations.reduce((acc, translation) => {
+        const locale = translation.translations[0].locale;
+        const value = translation.translations[0].value;
+        return { ...acc, [locale]: value };
+      }, {});
+
+      return defaultValuesMap;
+    },
+    (fetchedData) => {
+      setDefaultTranslations((prevTranslations) => {
+        if (prevTranslations !== fetchedData) {
+          return fetchedData;
+        }
+        return prevTranslations;
+      });
+    },
+    [combinedLocales, translationKey, realmName],
+  );
+
   useEffect(() => {
     combinedLocales.forEach((locale, rowIndex) => {
-      setValue(`translations.${rowIndex}`, {
-        locale,
-        value: "",
-      });
-      setValue("key", translationKey);
+      setValue(`translations.${rowIndex}.locale`, locale);
+      setValue(
+        `translations.${rowIndex}.value`,
+        translations.translations.length > 0
+          ? translations.translations[rowIndex].value
+          : defaultTranslations[locale] || "",
+      );
     });
-  }, [combinedLocales, translationKey, setValue]);
+    setValue("key", translationKey);
+  }, [
+    combinedLocales,
+    defaultTranslations,
+    translationKey,
+    setValue,
+    translations,
+  ]);
 
   const handleOk = () => {
     const formData = getValues();
@@ -176,7 +217,9 @@ export const AddTranslationsDialog = ({
         <FlexItem>
           <TextContent>
             <Text component={TextVariants.p}>
-              {t("addTranslationsModalSubTitle")}{" "}
+              {type !== "displayHeader"
+                ? t("addTranslationsModalSubTitleDescription")
+                : t("addTranslationsModalSubTitle")}{" "}
               <strong>{t("addTranslationsModalSubTitleBolded")}</strong>
             </Text>
           </TextContent>
@@ -191,14 +234,14 @@ export const AddTranslationsDialog = ({
               <TextControl
                 name="key"
                 label={t("translationKey")}
-                className="pf-u-mt-md"
+                className="pf-v5-u-mt-md"
                 data-testid="translation-key"
                 isDisabled
               />
               <FlexItem>
                 <TextContent>
                   <Text
-                    className="pf-u-font-size-sm pf-u-font-weight-bold"
+                    className="pf-v5-u-font-size-sm pf-v5-u-font-weight-bold"
                     component={TextVariants.p}
                   >
                     {t("translationsTableHeading")}
@@ -245,10 +288,10 @@ export const AddTranslationsDialog = ({
                     >
                       <Thead>
                         <Tr>
-                          <Th className="pf-u-py-lg">
+                          <Th className="pf-v5-u-py-lg">
                             {t("supportedLanguagesTableColumnName")}
                           </Th>
-                          <Th className="pf-u-py-lg">
+                          <Th className="pf-v5-u-py-lg">
                             {t("translationTableColumnName")}
                           </Th>
                           <Th aria-hidden="true" />
@@ -262,7 +305,7 @@ export const AddTranslationsDialog = ({
                           return (
                             <Tr key={index}>
                               <Td
-                                className="pf-m-sm pf-u-px-sm"
+                                className="pf-m-sm pf-v5-u-px-sm"
                                 dataLabel={t("supportedLanguage")}
                               >
                                 <FormGroup fieldId="kc-supportedLanguage">
@@ -271,7 +314,10 @@ export const AddTranslationsDialog = ({
                                     whoAmI.getLocale(),
                                   )}
                                   {locale === defaultLocales.toString() && (
-                                    <Label className="pf-u-ml-xs" color="blue">
+                                    <Label
+                                      className="pf-v5-u-ml-xs"
+                                      color="blue"
+                                    >
                                       {t("defaultLanguage")}
                                     </Label>
                                   )}

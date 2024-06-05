@@ -17,10 +17,24 @@
 
 package org.keycloak.representations.idm;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
+
 public class OrganizationRepresentation {
 
     private String id;
     private String name;
+    private boolean enabled = true;
+    private String description;
+    private Map<String, List<String>> attributes;
+    private Set<OrganizationDomainRepresentation> domains;
+    private List<UserRepresentation> members;
+    private List<IdentityProviderRepresentation> identityProviders;
 
     public String getId() {
         return id;
@@ -36,6 +50,94 @@ public class OrganizationRepresentation {
 
     public String getName() {
         return name;
+    }
+
+    public boolean isEnabled() {
+        return this.enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public String getDescription() {
+        return this.description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public Map<String, List<String>> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(Map<String, List<String>>  attributes) {
+        this.attributes = attributes;
+    }
+
+    public OrganizationRepresentation singleAttribute(String name, String value) {
+        if (this.attributes == null) attributes = new HashMap<>();
+        attributes.put(name, Arrays.asList(value));
+        return this;
+    }
+
+    public Set<OrganizationDomainRepresentation> getDomains() {
+        return domains;
+    }
+
+    public OrganizationDomainRepresentation getDomain(String name) {
+        if (domains == null) {
+            return null;
+        }
+        return domains.stream()
+                .filter(organizationDomainRepresentation -> name.equals(organizationDomainRepresentation.getName()))
+                .findAny()
+                .orElse(null);
+    }
+
+    public void addDomain(OrganizationDomainRepresentation domain) {
+        if (domains == null) {
+            domains = new HashSet<>();
+        }
+        domains.add(domain);
+    }
+
+    public void removeDomain(OrganizationDomainRepresentation domain) {
+        if (domains == null) {
+            return;
+        }
+        getDomains().remove(domain);
+    }
+
+    public List<UserRepresentation> getMembers() {
+        return members;
+    }
+
+    public void setMembers(List<UserRepresentation> members) {
+        this.members = members;
+    }
+
+    public void addMember(UserRepresentation user) {
+        if (members == null) {
+            members = new ArrayList<>();
+        }
+        members.add(user);
+    }
+
+    public List<IdentityProviderRepresentation> getIdentityProviders() {
+        return identityProviders;
+    }
+
+    public void setIdentityProviders(List<IdentityProviderRepresentation> identityProviders) {
+        this.identityProviders = identityProviders;
+    }
+
+    public void addIdentityProvider(IdentityProviderRepresentation idp) {
+        if (identityProviders == null) {
+            identityProviders = new ArrayList<>();
+        }
+        identityProviders.add(idp);
     }
 
     @Override

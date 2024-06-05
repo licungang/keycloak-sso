@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  DropdownProps,
-  Select,
   SelectOption,
-  SelectVariant,
   Split,
   SplitItem,
   TextInput,
   TextInputProps,
 } from "@patternfly/react-core";
+import {
+  KeycloakSelect,
+  KeycloakSelectProps,
+  SelectVariant,
+} from "../select/KeycloakSelect";
 
 export type Unit = "second" | "minute" | "hour" | "day";
 
@@ -26,24 +28,24 @@ export type TimeSelectorProps = Omit<
   TextInputProps,
   "onChange" | "defaultValue"
 > &
-  Pick<DropdownProps, "menuAppendTo"> & {
+  Pick<KeycloakSelectProps, "menuAppendTo"> & {
     value?: number;
     units?: Unit[];
     onChange?: (time: number | string) => void;
     className?: string;
   };
 
-export const getTimeUnit = (value: number | undefined = 0) =>
-  allTimes.reduce(
+const getTimeUnit = (units: TimeUnit[], value = 0) =>
+  units.reduce(
     (v, time) =>
       value % time.multiplier === 0 && v.multiplier < time.multiplier
         ? time
         : v,
-    allTimes[0],
+    units[0],
   );
 
 export const toHumanFormat = (value: number, locale: string) => {
-  const timeUnit = getTimeUnit(value);
+  const timeUnit = getTimeUnit(allTimes, value);
   const formatter = new Intl.NumberFormat(locale, {
     style: "unit",
     unit: timeUnit.unit,
@@ -88,7 +90,7 @@ export const TimeSelector = ({
   }, [units, multiplier]);
 
   useEffect(() => {
-    const multiplier = getTimeUnit(value).multiplier;
+    const multiplier = getTimeUnit(times, value).multiplier;
 
     if (value) {
       setMultiplier(multiplier);
@@ -123,23 +125,23 @@ export const TimeSelector = ({
           min={min || 0}
           value={timeValue}
           className={`${className}-input`}
-          onChange={(value) => {
+          onChange={(_event, value) => {
             updateTimeout("" === value ? value : parseInt(value));
           }}
         />
       </SplitItem>
       <SplitItem id={`${className}-select-menu`}>
-        <Select
+        <KeycloakSelect
           variant={SelectVariant.single}
           aria-label={t("unitLabel")}
           className={`${className}-select`}
-          onSelect={(_, value) => {
+          onSelect={(value) => {
             setMultiplier(value as number);
             updateTimeout(timeValue, value as number);
             setOpen(false);
           }}
           menuAppendTo={menuAppendTo}
-          selections={[multiplier]}
+          selections={multiplier}
           onToggle={() => {
             setOpen(!open);
           }}
@@ -155,7 +157,7 @@ export const TimeSelector = ({
               {t(time.label)}
             </SelectOption>
           ))}
-        </Select>
+        </KeycloakSelect>
       </SplitItem>
     </Split>
   );

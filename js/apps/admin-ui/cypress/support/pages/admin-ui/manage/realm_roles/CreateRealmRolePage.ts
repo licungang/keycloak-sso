@@ -19,8 +19,10 @@ class CreateRealmRolePage {
     return this;
   }
 
-  checkRealmRoleNameRequiredMessage(exist = true) {
-    cy.get(this.#realmRoleNameError).should((!exist ? "not." : "") + "exist");
+  checkRealmRoleNameRequiredMessage() {
+    cy.findByTestId(this.#realmRoleNameInput)
+      .parent()
+      .should("have.class", "pf-v5-c-form-control pf-m-error");
 
     return this;
   }
@@ -29,6 +31,7 @@ class CreateRealmRolePage {
   clickActionMenu(item: string) {
     cy.findByTestId("action-dropdown")
       .click()
+      .parent()
       .within(() => {
         cy.findByText(item).click();
       });
@@ -38,8 +41,8 @@ class CreateRealmRolePage {
   checkNameDisabled() {
     cy.findByTestId(this.#realmRoleNameInput).should(
       "have.attr",
-      "readonly",
-      "readonly",
+      "disabled",
+      "disabled",
     );
     return this;
   }

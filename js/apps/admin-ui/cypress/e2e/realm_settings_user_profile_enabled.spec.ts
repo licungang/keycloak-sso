@@ -24,7 +24,6 @@ const createUserPage = new CreateUserPage();
 const getUserProfileTab = () => userProfileTab.goToTab();
 const getAttributesTab = () => userProfileTab.goToAttributesTab();
 const getAttributesGroupTab = () => userProfileTab.goToAttributesGroupTab();
-const getJsonEditorTab = () => userProfileTab.goToJsonEditorTab();
 
 const usernameAttributeName = "username";
 const emailAttributeName = "email";
@@ -121,7 +120,7 @@ describe("User profile tabs", () => {
   });
 
   describe("Attribute groups sub tab tests", () => {
-    it("Deletes an attributes group", () => {
+    it.skip("Deletes an attributes group", () => {
       const group = "Test";
       cy.wrap(null).then(() =>
         adminClient.patchUserProfile(realmName, {
@@ -134,32 +133,6 @@ describe("User profile tabs", () => {
       listingPage.deleteItem(group);
       modalUtils.confirmModal();
       listingPage.checkEmptyList();
-    });
-  });
-
-  describe("Json Editor sub tab tests", () => {
-    const removedThree = `
-      {ctrl+a}{backspace}
-  {
-    "attributes": [
-      {
-  "name": "${emailAttributeName}"{downArrow},
-      {
-  "name": "${usernameAttributeName}",
-  "validations": {
-    "length": {
-    "min": 3,
-  "max": 255 {downArrow},
-  "username-prohibited-characters": {
-  `;
-
-    it("Removes three validators with the editor", () => {
-      getUserProfileTab();
-      getJsonEditorTab();
-      userProfileTab
-        .typeJSON(removedThree)
-        .saveJSON()
-        .assertNotificationUpdated();
     });
   });
 

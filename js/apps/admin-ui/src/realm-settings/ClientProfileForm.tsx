@@ -1,6 +1,11 @@
 import type ClientProfileRepresentation from "@keycloak/keycloak-admin-client/lib/defs/clientProfileRepresentation";
 import type ClientProfilesRepresentation from "@keycloak/keycloak-admin-client/lib/defs/clientProfilesRepresentation";
 import {
+  HelpItem,
+  TextAreaControl,
+  TextControl,
+} from "@keycloak/keycloak-ui-shared";
+import {
   ActionGroup,
   AlertVariant,
   Button,
@@ -24,8 +29,7 @@ import { Fragment, useMemo, useState } from "react";
 import { FormProvider, useFieldArray, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-import { HelpItem, TextAreaControl, TextControl } from "ui-shared";
-import { adminClient } from "../admin-client";
+import { useAdminClient } from "../admin-client";
 import { useAlerts } from "../components/alert/Alerts";
 import { useConfirmDialog } from "../components/confirm-dialog/ConfirmDialog";
 import { FormAccess } from "../components/form/FormAccess";
@@ -50,6 +54,8 @@ const defaultValues: ClientProfileForm = {
 };
 
 export default function ClientProfileForm() {
+  const { adminClient } = useAdminClient();
+
   const { t } = useTranslation();
   const navigate = useNavigate();
   const form = useForm<ClientProfileForm>({
@@ -217,7 +223,7 @@ export default function ClientProfileForm() {
       />
       <PageSection variant="light">
         <FormProvider {...form}>
-          <FormAccess isHorizontal role="view-realm" className="pf-u-mt-lg">
+          <FormAccess isHorizontal role="view-realm" className="pf-v5-u-mt-lg">
             <TextControl
               name="name"
               label={t("newClientProfileName")}

@@ -9,16 +9,14 @@ import {
   DropdownItem,
   FormGroup,
   PageSection,
-  Select,
   SelectOption,
-  SelectVariant,
 } from "@patternfly/react-core";
 import { useState } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { HelpItem, TextControl } from "ui-shared";
-import { adminClient } from "../../../admin-client";
+import { HelpItem, TextControl } from "@keycloak/keycloak-ui-shared";
+import { useAdminClient } from "../../../admin-client";
 import { useAlerts } from "../../../components/alert/Alerts";
 import { useConfirmDialog } from "../../../components/confirm-dialog/ConfirmDialog";
 import {
@@ -27,7 +25,6 @@ import {
 } from "../../../components/dynamic/DynamicComponents";
 import { FormAccess } from "../../../components/form/FormAccess";
 import { KeycloakSpinner } from "../../../components/keycloak-spinner/KeycloakSpinner";
-import { KeycloakTextInput } from "../../../components/keycloak-text-input/KeycloakTextInput";
 import { ViewHeader } from "../../../components/view-header/ViewHeader";
 import { useRealm } from "../../../context/realm-context/RealmContext";
 import { convertFormValuesToObject, convertToFormValues } from "../../../util";
@@ -35,8 +32,14 @@ import { useFetch } from "../../../utils/useFetch";
 import { useParams } from "../../../utils/useParams";
 import { toUserFederationLdap } from "../../routes/UserFederationLdap";
 import { UserFederationLdapMapperParams } from "../../routes/UserFederationLdapMapper";
+import {
+  KeycloakSelect,
+  SelectVariant,
+} from "../../../components/select/KeycloakSelect";
 
 export default function LdapMapperDetails() {
+  const { adminClient } = useAdminClient();
+
   const form = useForm<ComponentRepresentation>();
   const [mapping, setMapping] = useState<ComponentRepresentation>();
   const [components, setComponents] = useState<ComponentTypeRepresentation[]>();
@@ -219,14 +222,14 @@ export default function LdapMapperDetails() {
               isDisabled={!isNew}
               rules={{ required: t("required") }}
             />
-            <KeycloakTextInput
-              hidden
+            <input
+              type="hidden"
               defaultValue={isNew ? id : mapping ? mapping.parentId : ""}
               data-testid="ldap-mapper-parentId"
               {...form.register("parentId")}
             />
-            <KeycloakTextInput
-              hidden
+            <input
+              type="hidden"
               defaultValue="org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
               data-testid="ldap-mapper-provider-type"
               {...form.register("providerType")}
@@ -261,15 +264,14 @@ export default function LdapMapperDetails() {
                   control={form.control}
                   data-testid="ldap-mapper-type-select"
                   render={({ field }) => (
-                    <Select
+                    <KeycloakSelect
                       toggleId="kc-providerId"
                       typeAheadAriaLabel={t("mapperType")}
-                      required
                       onToggle={() =>
                         setIsMapperDropdownOpen(!isMapperDropdownOpen)
                       }
                       isOpen={isMapperDropdownOpen}
-                      onSelect={(_, value) => {
+                      onSelect={(value) => {
                         setupForm({
                           providerId: value as string,
                           ...Object.fromEntries(
@@ -289,9 +291,11 @@ export default function LdapMapperDetails() {
                       aria-label={t("selectMapperType")}
                     >
                       {components.map((c) => (
-                        <SelectOption key={c.id} value={c.id} />
+                        <SelectOption key={c.id} value={c.id}>
+                          {c.id}
+                        </SelectOption>
                       ))}
-                    </Select>
+                    </KeycloakSelect>
                   )}
                 ></Controller>
               </FormGroup>

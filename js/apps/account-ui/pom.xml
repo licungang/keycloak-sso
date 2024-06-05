@@ -71,26 +71,25 @@
                 <artifactId>frontend-maven-plugin</artifactId>
                 <executions>
                     <execution>
-                        <goals>
-                            <goal>install-node-and-pnpm</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>pnpm-install</id>
+                        <id>lib-build</id>
                         <goals>
                             <goal>pnpm</goal>
                         </goals>
                         <configuration>
-                            <arguments>${pnpm.args.install}</arguments>
+                            <arguments>build</arguments>
+                            <environmentVariables>
+                                <LIB>true</LIB>
+                            </environmentVariables>
                         </configuration>
                     </execution>
                     <execution>
-                        <id>run-build</id>
+                        <id>pack</id>
+                        <phase>package</phase>
                         <goals>
                             <goal>pnpm</goal>
                         </goals>
                         <configuration>
-                            <arguments>run build</arguments>
+                            <arguments>pack --pack-destination=target</arguments>
                         </configuration>
                     </execution>
                 </executions>
@@ -166,8 +165,11 @@
             "deleteAccountAllowed": ${deleteAccountAllowed?c},
             "updateEmailFeatureEnabled": ${updateEmailFeatureEnabled?c},
             "updateEmailActionEnabled": ${updateEmailActionEnabled?c},
-            "isViewGroupsEnabled": ${isViewGroupsEnabled?c}
-        }
+            "isViewGroupsEnabled": ${isViewGroupsEnabled?c},
+            "isOid4VciEnabled": ${isOid4VciEnabled?c}
+        },
+        "referrerName": "${referrerName!""}",
+        "referrerUrl": "${referrer_uri!""}"
     }
   </script>
 </body>

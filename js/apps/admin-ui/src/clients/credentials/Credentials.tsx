@@ -18,8 +18,8 @@ import {
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { HelpItem, SelectControl } from "ui-shared";
-import { adminClient } from "../../admin-client";
+import { HelpItem, SelectControl } from "@keycloak/keycloak-ui-shared";
+import { useAdminClient } from "../../admin-client";
 import { useAlerts } from "../../components/alert/Alerts";
 import { useConfirmDialog } from "../../components/confirm-dialog/ConfirmDialog";
 import { FormAccess } from "../../components/form/FormAccess";
@@ -40,6 +40,8 @@ export type CredentialsProps = {
 };
 
 export const Credentials = ({ client, save, refresh }: CredentialsProps) => {
+  const { adminClient } = useAdminClient();
+
   const { t } = useTranslation();
   const { addAlert, addError } = useAlerts();
   const clientId = client.id!;
@@ -135,7 +137,7 @@ export const Credentials = ({ client, save, refresh }: CredentialsProps) => {
       <FormAccess
         onSubmit={handleSubmit(save)}
         isHorizontal
-        className="pf-u-mt-md"
+        className="pf-v5-u-mt-md"
         role="manage-clients"
         fineGrainedAccess={client.access?.configure}
       >

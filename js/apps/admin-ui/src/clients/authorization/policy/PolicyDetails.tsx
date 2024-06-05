@@ -11,8 +11,7 @@ import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-
-import { adminClient } from "../../../admin-client";
+import { useAdminClient } from "../../../admin-client";
 import { useAlerts } from "../../../components/alert/Alerts";
 import { useConfirmDialog } from "../../../components/confirm-dialog/ConfirmDialog";
 import { FormAccess } from "../../../components/form/FormAccess";
@@ -62,6 +61,8 @@ const COMPONENTS: {
 export const isValidComponentType = (value: string) => value in COMPONENTS;
 
 export default function PolicyDetails() {
+  const { adminClient } = useAdminClient();
+
   const { t } = useTranslation();
   const { id, realm, policyId, policyType } = useParams<PolicyDetailsParams>();
   const navigate = useNavigate();
@@ -206,11 +207,11 @@ export default function PolicyDetails() {
             <LogicSelector isDisabled={isDisabled} />
           </FormProvider>
           <ActionGroup>
-            <div className="pf-u-mt-md">
+            <div className="pf-v5-u-mt-md">
               <Button
                 isDisabled={isDisabled}
                 variant={ButtonVariant.primary}
-                className="pf-u-mr-md"
+                className="pf-v5-u-mr-md"
                 type="submit"
                 data-testid="save"
               >

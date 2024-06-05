@@ -1,6 +1,5 @@
 package org.keycloak.services.error;
 
-import static org.keycloak.common.util.Resteasy.getContextData;
 import static org.keycloak.services.resources.KeycloakApplication.getSessionFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -13,6 +12,8 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionTaskWithResult;
 import org.keycloak.models.KeycloakTransaction;
 import org.keycloak.models.ModelDuplicateException;
+import org.keycloak.models.ModelIllegalStateException;
+import org.keycloak.models.ModelValidationException;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.representations.idm.OAuth2ErrorRepresentation;
@@ -24,6 +25,7 @@ import org.keycloak.theme.beans.MessageBean;
 import org.keycloak.theme.beans.MessageFormatterMethod;
 import org.keycloak.forms.login.MessageType;
 import org.keycloak.theme.freemarker.FreeMarkerProvider;
+import org.keycloak.utils.KeycloakSessionUtil;
 import org.keycloak.utils.MediaType;
 import org.keycloak.utils.MediaTypeMatcher;
 
@@ -53,7 +55,7 @@ public class KeycloakErrorHandler implements ExceptionMapper<Throwable> {
 
     @Override
     public Response toResponse(Throwable throwable) {
-        KeycloakSession session = getContextData(KeycloakSession.class);
+        KeycloakSession session = KeycloakSessionUtil.getKeycloakSession();
 
         if (session == null) {
             // errors might be thrown when handling errors from JAX-RS before the session is available
@@ -121,10 +123,13 @@ public class KeycloakErrorHandler implements ExceptionMapper<Throwable> {
             WebApplicationException ex = (WebApplicationException) throwable;
             status = ex.getResponse().getStatus();
         }
-        if (throwable instanceof JsonProcessingException) {
+        if (throwable instanceof JsonProcessingException
+                || throwable instanceof ModelValidationException) {
             status = Response.Status.BAD_REQUEST.getStatusCode();
         }
-
+        if (throwable instanceof ModelIllegalStateException) {
+            status = Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
+        }
         if (throwable instanceof ModelDuplicateException) {
             status = Response.Status.CONFLICT.getStatusCode();
         }

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { SelectControl } from "ui-shared";
+import { SelectControl } from "@keycloak/keycloak-ui-shared";
 import { useServerInfo } from "../../context/server-info/ServerInfoProvider";
 import { convertAttributeNameToForm } from "../../util";
 import { FormFields } from "../ClientDetails";
@@ -27,7 +27,8 @@ export const SignedJWT = ({ clientAuthenticatorType }: SignedJWTProps) => {
       controller={{
         defaultValue: "",
       }}
-      maxHeight={200}
+      isScrollable
+      maxMenuHeight="200px"
       options={[
         { key: "", value: t("anyAlgorithm") },
         ...providers.map((option) => ({ key: option, value: option })),

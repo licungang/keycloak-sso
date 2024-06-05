@@ -15,24 +15,24 @@ import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-import { HelpItem, TextControl } from "ui-shared";
-import { adminClient } from "../../admin-client";
+import { HelpItem, TextControl } from "@keycloak/keycloak-ui-shared";
+import { useAdminClient } from "../../admin-client";
+import { DefaultSwitchControl } from "../../components/SwitchControl";
 import { useAlerts } from "../../components/alert/Alerts";
 import { useConfirmDialog } from "../../components/confirm-dialog/ConfirmDialog";
 import { FormAccess } from "../../components/form/FormAccess";
-import type { KeyValueType } from "../../components/key-value-form/key-value-convert";
 import { KeyValueInput } from "../../components/key-value-form/KeyValueInput";
+import type { KeyValueType } from "../../components/key-value-form/key-value-convert";
 import { KeycloakSpinner } from "../../components/keycloak-spinner/KeycloakSpinner";
 import { MultiLineInput } from "../../components/multi-line-input/MultiLineInput";
 import { ViewHeader } from "../../components/view-header/ViewHeader";
+import { useAccess } from "../../context/access/Access";
 import { convertFormValuesToObject, convertToFormValues } from "../../util";
 import { useFetch } from "../../utils/useFetch";
 import { useParams } from "../../utils/useParams";
 import { toAuthorizationTab } from "../routes/AuthenticationTab";
 import { ResourceDetailsParams, toResourceDetails } from "../routes/Resource";
 import { ScopePicker } from "./ScopePicker";
-import { DefaultSwitchControl } from "../../components/SwitchControl";
-import { useAccess } from "../../context/access/Access";
 import "./resource-details.css";
 
 type SubmittedResource = Omit<
@@ -43,6 +43,8 @@ type SubmittedResource = Omit<
 };
 
 export default function ResourceDetails() {
+  const { adminClient } = useAdminClient();
+
   const { t } = useTranslation();
   const [client, setClient] = useState<ClientRepresentation>();
   const [resource, setResource] = useState<ResourceRepresentation>();
@@ -127,11 +129,11 @@ export default function ResourceDetails() {
             isInline
             isPlain
             title={t("deleteResourceWarning")}
-            className="pf-u-pt-lg"
+            className="pf-v5-u-pt-lg"
           >
-            <p className="pf-u-pt-xs">
+            <p className="pf-v5-u-pt-xs">
               {permissions?.map((permission) => (
-                <strong key={permission.id} className="pf-u-pr-md">
+                <strong key={permission.id} className="pf-v5-u-pr-md">
                   {permission.name}
                 </strong>
               ))}
@@ -251,7 +253,7 @@ export default function ResourceDetails() {
               <KeyValueInput name="attributes" isDisabled={isDisabled} />
             </FormGroup>
             <ActionGroup>
-              <div className="pf-u-mt-md">
+              <div className="pf-v5-u-mt-md">
                 <Button
                   variant={ButtonVariant.primary}
                   type="submit"

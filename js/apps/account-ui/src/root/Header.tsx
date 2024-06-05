@@ -1,34 +1,33 @@
-import {
-  KeycloakMasthead,
-  KeycloakProvider,
-  Translations,
-  TranslationsProvider,
-} from "keycloak-masthead";
-import { useMemo } from "react";
+import { Button } from "@patternfly/react-core";
+import { ExternalLinkSquareAltIcon } from "@patternfly/react-icons";
 import { useTranslation } from "react-i18next";
 import { useHref } from "react-router-dom";
-import { useEnvironment } from "./KeycloakContext";
+import {
+  KeycloakMasthead,
+  environment,
+  label,
+  useEnvironment,
+} from "@keycloak/keycloak-ui-shared";
 import { joinPath } from "../utils/joinPath";
-import { ExternalLinkSquareAltIcon } from "@patternfly/react-icons";
-import { Button } from "@patternfly/react-core";
 
 import style from "./header.module.css";
-import { environment } from "../environment";
 
 const ReferrerLink = () => {
   const { t } = useTranslation();
 
-  return environment.referrer_uri ? (
+  return environment.referrerUrl ? (
     <Button
       data-testid="referrer-link"
       component="a"
-      href={environment.referrer_uri!.replace("_hash_", "#")}
+      href={environment.referrerUrl.replace("_hash_", "#")}
       variant="link"
       icon={<ExternalLinkSquareAltIcon />}
       iconPosition="right"
       isInline
     >
-      {t("backTo", { app: environment.referrer })}
+      {t("backTo", {
+        app: label(t, environment.referrerName, environment.referrerUrl),
+      })}
     </Button>
   ) : null;
 };
@@ -43,32 +42,20 @@ export const Header = () => {
 
   // User can indicate that he wants an internal URL by starting it with "/"
   const indexHref = logoUrl.startsWith("/") ? internalLogoHref : logoUrl;
-  const translations = useMemo<Translations>(
-    () => ({
-      avatar: t("avatar"),
-      fullName: t("fullName"),
-      manageAccount: t("manageAccount"),
-      signOut: t("signOut"),
-      unknownUser: t("unknownUser"),
-    }),
-    [t],
-  );
 
   return (
-    <TranslationsProvider translations={translations}>
-      <KeycloakProvider keycloak={keycloak}>
-        <KeycloakMasthead
-          features={{ hasManageAccount: false }}
-          showNavToggle
-          brand={{
-            href: indexHref,
-            src: joinPath(environment.resourceUrl, brandImage),
-            alt: t("logo"),
-            className: style.brand,
-          }}
-          toolbarItems={[<ReferrerLink key="link" />]}
-        />
-      </KeycloakProvider>
-    </TranslationsProvider>
+    <KeycloakMasthead
+      data-testid="page-header"
+      keycloak={keycloak}
+      features={{ hasManageAccount: false }}
+      showNavToggle
+      brand={{
+        href: indexHref,
+        src: joinPath(environment.resourceUrl, brandImage),
+        alt: t("logo"),
+        className: style.brand,
+      }}
+      toolbarItems={[<ReferrerLink key="link" />]}
+    />
   );
 };

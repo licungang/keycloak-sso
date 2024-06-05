@@ -61,6 +61,7 @@ import org.keycloak.representations.idm.FederatedIdentityRepresentation;
 import org.keycloak.representations.idm.GroupRepresentation;
 import org.keycloak.representations.idm.IdentityProviderRepresentation;
 import org.keycloak.representations.idm.MappingsRepresentation;
+import org.keycloak.representations.idm.OAuth2ErrorRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.RequiredActionProviderRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
@@ -243,7 +244,7 @@ public class UserTest extends AbstractAdminTest {
             createdId = ApiUtil.getCreatedId(response);
         }
 
-        StripSecretsUtils.strip(userRep);
+        StripSecretsUtils.stripSecrets(null, userRep);
 
         if (assertAdminEvent) {
             assertAdminEvents.assertEvent(realmId, OperationType.CREATE, AdminEventPaths.userResourcePath(createdId), userRep,
@@ -258,7 +259,7 @@ public class UserTest extends AbstractAdminTest {
     private void updateUser(UserResource user, UserRepresentation userRep) {
         user.update(userRep);
         List<CredentialRepresentation> credentials = userRep.getCredentials();
-        assertAdminEvents.assertEvent(realmId, OperationType.UPDATE, AdminEventPaths.userResourcePath(userRep.getId()), StripSecretsUtils.strip(userRep), ResourceType.USER);
+        assertAdminEvents.assertEvent(realmId, OperationType.UPDATE, AdminEventPaths.userResourcePath(userRep.getId()), StripSecretsUtils.stripSecrets(null, userRep), ResourceType.USER);
         userRep.setCredentials(credentials);
     }
 
@@ -738,8 +739,9 @@ public class UserTest extends AbstractAdminTest {
 
         try (Response response = realm.users().create(user)) {
             assertEquals(400, response.getStatus());
-            ErrorRepresentation error = response.readEntity(ErrorRepresentation.class);
-            Assert.assertEquals("Password policy not met", error.getErrorMessage());
+            OAuth2ErrorRepresentation error = response.readEntity(OAuth2ErrorRepresentation.class);
+            Assert.assertEquals("invalidPasswordMinLengthMessage", error.getError());
+            Assert.assertEquals("Invalid password: minimum length 8.", error.getErrorDescription());
             rep.setPasswordPolicy(passwordPolicy);
             assertAdminEvents.assertEmpty();
             realm.update(rep);
@@ -1096,6 +1098,31 @@ public class UserTest extends AbstractAdminTest {
 
         List<UserRepresentation> searchInvalidSizeAndDisabled = realm.users().search(null, null, null, null, 10, 20, null, false);
         assertEquals(0, searchInvalidSizeAndDisabled.size());
+    }
+
+    @Test
+    public void searchWithFilterAndEnabledAttribute() {
+        createUser();
+
+        UserRepresentation user = new UserRepresentation();
+        user.setUsername("user3");
+        user.setFirstName("user3First");
+        user.setLastName("user3Last");
+        user.setEmail("user3@localhost");
+        user.setRequiredActions(Collections.emptyList());
+        user.setEnabled(false);
+        createUser(user);
+
+        List<UserRepresentation> searchFilterUserNameAndDisabled = realm.users().search("user3", false, 0, 5);
+        assertEquals(1, searchFilterUserNameAndDisabled.size());
+        assertEquals(user.getUsername(), searchFilterUserNameAndDisabled.get(0).getUsername());
+
+        List<UserRepresentation> searchFilterMailAndDisabled = realm.users().search("user3@localhost", false, 0, 5);
+        assertEquals(1, searchFilterMailAndDisabled.size());
+        assertEquals(user.getUsername(), searchFilterMailAndDisabled.get(0).getUsername());
+
+        List<UserRepresentation> searchFilterLastNameAndEnabled = realm.users().search("user3Last", true, 0, 5);
+        assertEquals(0, searchFilterLastNameAndEnabled.size());
     }
 
     @Test
@@ -2354,7 +2381,7 @@ public class UserTest extends AbstractAdminTest {
 
         try {
             final AccessToken accessToken = TokenVerifier.create(token, AccessToken.class).getToken();
-            assertEquals(lifespan, accessToken.getExpiration() - accessToken.getIssuedAt());
+            assertEquals(lifespan, accessToken.getExp() - accessToken.getIat());
         } catch (VerificationException e) {
             throw new IOException(e);
         }

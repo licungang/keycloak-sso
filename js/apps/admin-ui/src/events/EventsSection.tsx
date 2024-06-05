@@ -1,6 +1,7 @@
 import type EventRepresentation from "@keycloak/keycloak-admin-client/lib/defs/eventRepresentation";
 import type EventType from "@keycloak/keycloak-admin-client/lib/defs/eventTypes";
 import type { RealmEventsConfigRepresentation } from "@keycloak/keycloak-admin-client/lib/defs/realmEventsConfigRepresentation";
+import { TextControl } from "@keycloak/keycloak-ui-shared";
 import {
   ActionGroup,
   Button,
@@ -15,10 +16,9 @@ import {
   FlexItem,
   Form,
   FormGroup,
+  Icon,
   PageSection,
-  Select,
   SelectOption,
-  SelectVariant,
   Tab,
   TabTitleText,
   Tooltip,
@@ -30,16 +30,19 @@ import { useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { Trans, useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-
-import { adminClient } from "../admin-client";
+import { useAdminClient } from "../admin-client";
+import DropdownPanel from "../components/dropdown-panel/DropdownPanel";
 import { ListEmptyState } from "../components/list-empty-state/ListEmptyState";
 import {
   RoutableTabs,
   useRoutableTab,
 } from "../components/routable-tabs/RoutableTabs";
+import {
+  KeycloakSelect,
+  SelectVariant,
+} from "../components/select/KeycloakSelect";
 import { KeycloakDataTable } from "../components/table-toolbar/KeycloakDataTable";
 import { ViewHeader } from "../components/view-header/ViewHeader";
-import DropdownPanel from "../components/dropdown-panel/DropdownPanel";
 import { useRealm } from "../context/realm-context/RealmContext";
 import helpUrls from "../help-urls";
 import { toRealmSettings } from "../realm-settings/routes/RealmSettings";
@@ -48,7 +51,6 @@ import { useFetch } from "../utils/useFetch";
 import useFormatDate, { FORMAT_DATE_AND_TIME } from "../utils/useFormatDate";
 import { AdminEvents } from "./AdminEvents";
 import { EventsTab, toEvents } from "./routes/Events";
-import { TextControl } from "ui-shared";
 
 import "./events.css";
 
@@ -73,12 +75,18 @@ const defaultValues: UserEventSearchForm = {
 const StatusRow = (event: EventRepresentation) =>
   !event.error ? (
     <span>
-      <CheckCircleIcon color="green" /> {event.type}
+      <Icon status="success">
+        <CheckCircleIcon />
+      </Icon>
+      {event.type}
     </span>
   ) : (
     <Tooltip content={event.error}>
       <span>
-        <WarningTriangleIcon color="orange" /> {event.type}
+        <Icon status="warning">
+          <WarningTriangleIcon />
+        </Icon>
+        {event.type}
       </span>
     </Tooltip>
   );
@@ -125,6 +133,8 @@ const UserDetailLink = (event: EventRepresentation) => {
 };
 
 export default function EventsSection() {
+  const { adminClient } = useAdminClient();
+
   const { t } = useTranslation();
   const { realm } = useRealm();
   const formatDate = useFormatDate();
@@ -256,9 +266,8 @@ export default function EventsSection() {
                     name="type"
                     control={control}
                     render={({ field }) => (
-                      <Select
+                      <KeycloakSelect
                         className="keycloak__events_search__type_select"
-                        name="eventType"
                         data-testid="event-type-searchField"
                         chipGroupProps={{
                           numChips: 1,
@@ -269,7 +278,7 @@ export default function EventsSection() {
                         typeAheadAriaLabel="Select"
                         onToggle={(isOpen) => setSelectOpen(isOpen)}
                         selections={field.value}
-                        onSelect={(_, selectedValue) => {
+                        onSelect={(selectedValue) => {
                           const option = selectedValue.toString() as EventType;
                           const changedValue = field.value.includes(option)
                             ? field.value.filter((item) => item !== option)
@@ -277,8 +286,7 @@ export default function EventsSection() {
 
                           field.onChange(changedValue);
                         }}
-                        onClear={(event) => {
-                          event.stopPropagation();
+                        onClear={() => {
                           field.onChange([]);
                         }}
                         isOpen={selectOpen}
@@ -306,7 +314,7 @@ export default function EventsSection() {
                             {t(`eventTypes.${option}.name`)}
                           </SelectOption>
                         ))}
-                      </Select>
+                      </KeycloakSelect>
                     )}
                   />
                 </FormGroup>
@@ -325,7 +333,7 @@ export default function EventsSection() {
                     control={control}
                     render={({ field }) => (
                       <DatePicker
-                        className="pf-u-w-100"
+                        className="pf-v5-u-w-100"
                         value={field.value}
                         onChange={(_, value) => field.onChange(value)}
                         inputProps={{ id: "kc-dateFrom" }}
@@ -343,7 +351,7 @@ export default function EventsSection() {
                     control={control}
                     render={({ field }) => (
                       <DatePicker
-                        className="pf-u-w-100"
+                        className="pf-v5-u-w-100"
                         value={field.value}
                         onChange={(_, value) => field.onChange(value)}
                         inputProps={{ id: "kc-dateTo" }}
@@ -378,7 +386,7 @@ export default function EventsSection() {
           </FlexItem>
           <FlexItem>
             {Object.entries(activeFilters).length > 0 && (
-              <div className="keycloak__searchChips pf-u-ml-md">
+              <div className="keycloak__searchChips pf-v5-u-ml-md">
                 {Object.entries(activeFilters).map((filter) => {
                   const [key, value] = filter as [
                     keyof UserEventSearchForm,
@@ -387,7 +395,7 @@ export default function EventsSection() {
 
                   return (
                     <ChipGroup
-                      className="pf-u-mt-md pf-u-mr-md"
+                      className="pf-v5-u-mt-md pf-v5-u-mr-md"
                       key={key}
                       categoryName={filterLabels[key]}
                       isClosable
@@ -433,7 +441,7 @@ export default function EventsSection() {
         helpUrl={helpUrls.eventsUrl}
         divider={false}
       />
-      <PageSection variant="light" className="pf-u-p-0">
+      <PageSection variant="light" className="pf-v5-u-p-0">
         <RoutableTabs
           isBox
           defaultLocation={toEvents({ realm, tab: "user-events" })}

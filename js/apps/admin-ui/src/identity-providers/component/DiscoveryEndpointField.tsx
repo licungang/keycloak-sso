@@ -1,12 +1,10 @@
-import { FormGroup, Switch } from "@patternfly/react-core";
+import { FormGroup, Spinner, Switch } from "@patternfly/react-core";
 import debouncePromise from "p-debounce";
 import { ReactNode, useMemo, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { HelpItem, TextControl } from "ui-shared";
-
-import { adminClient } from "../../admin-client";
-import environment from "../../environment";
+import { HelpItem, TextControl } from "@keycloak/keycloak-ui-shared";
+import { useAdminClient } from "../../admin-client";
 
 type DiscoveryEndpointFieldProps = {
   id: string;
@@ -19,6 +17,8 @@ export const DiscoveryEndpointField = ({
   fileUpload,
   children,
 }: DiscoveryEndpointFieldProps) => {
+  const { adminClient } = useAdminClient();
+
   const { t } = useTranslation();
   const {
     setValue,
@@ -75,7 +75,7 @@ export const DiscoveryEndpointField = ({
           label={t("on")}
           labelOff={t("off")}
           isChecked={discovery}
-          onChange={(checked) => {
+          onChange={(_event, checked) => {
             clearErrors("discoveryError");
             setDiscovery(checked);
           }}
@@ -108,11 +108,7 @@ export const DiscoveryEndpointField = ({
                 ? "default"
                 : "success"
           }
-          customIconUrl={
-            discovering
-              ? environment.resourceUrl + "/discovery-load-indicator.svg"
-              : ""
-          }
+          customIcon={discovering ? <Spinner isInline /> : undefined}
           rules={{
             required: t("required"),
             validate: (value: string) => discoverDebounced(value),

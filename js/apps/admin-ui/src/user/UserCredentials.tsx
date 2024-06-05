@@ -9,14 +9,7 @@ import {
   PageSectionVariants,
 } from "@patternfly/react-core";
 import styles from "@patternfly/react-styles/css/components/Table/table";
-import {
-  TableComposable,
-  Tbody,
-  Td,
-  Th,
-  Thead,
-  Tr,
-} from "@patternfly/react-table";
+import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import {
   Fragment,
   DragEvent as ReactDragEvent,
@@ -25,9 +18,8 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { HelpItem } from "ui-shared";
-
-import { adminClient } from "../admin-client";
+import { HelpItem } from "@keycloak/keycloak-ui-shared";
+import { useAdminClient } from "../admin-client";
 import { useAlerts } from "../components/alert/Alerts";
 import { useConfirmDialog } from "../components/confirm-dialog/ConfirmDialog";
 import { KeycloakSpinner } from "../components/keycloak-spinner/KeycloakSpinner";
@@ -104,6 +96,8 @@ const UserCredentialsRow = ({
 );
 
 export const UserCredentials = ({ user, setUser }: UserCredentialsProps) => {
+  const { adminClient } = useAdminClient();
+
   const { t } = useTranslation();
   const { addAlert, addError } = useAlerts();
   const [key, setKey] = useState(0);
@@ -426,7 +420,7 @@ export const UserCredentials = ({ user, setUser }: UserCredentialsProps) => {
       )}
       {groupedUserCredentials.length !== 0 && (
         <PageSection variant={PageSectionVariants.light}>
-          <TableComposable variant={"compact"}>
+          <Table variant={"compact"}>
             <Thead>
               <Tr className="kc-table-header">
                 <Th>
@@ -552,12 +546,12 @@ export const UserCredentials = ({ user, setUser }: UserCredentialsProps) => {
                 </Fragment>
               ))}
             </Tbody>
-          </TableComposable>
+          </Table>
         </PageSection>
       )}
       {useFederatedCredentials && hasCredentialTypes && (
         <PageSection variant={PageSectionVariants.light}>
-          <TableComposable variant="compact">
+          <Table variant="compact">
             <Thead>
               <Tr>
                 <Th>{t("type")}</Th>
@@ -584,7 +578,7 @@ export const UserCredentials = ({ user, setUser }: UserCredentialsProps) => {
                 </Tr>
               ))}
             </Tbody>
-          </TableComposable>
+          </Table>
         </PageSection>
       )}
       {emptyState && (

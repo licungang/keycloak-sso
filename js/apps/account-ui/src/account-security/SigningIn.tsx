@@ -8,28 +8,27 @@ import {
   DataListItemRow,
   Dropdown,
   DropdownItem,
-  KebabToggle,
+  MenuToggle,
   PageSection,
   Spinner,
   Split,
   SplitItem,
   Title,
 } from "@patternfly/react-core";
+import { EllipsisVIcon } from "@patternfly/react-icons";
 import { CSSProperties, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { ContinueCancelModal, useAlerts } from "ui-shared";
-import { deleteCredentials, getCredentials } from "../api/methods";
+import { useEnvironment } from "@keycloak/keycloak-ui-shared";
+import { getCredentials } from "../api/methods";
 import {
   CredentialContainer,
   CredentialMetadataRepresentation,
-  CredentialRepresentation,
 } from "../api/representations";
 import { EmptyRow } from "../components/datalist/EmptyRow";
 import { Page } from "../components/page/Page";
 import { TFuncKey } from "../i18n";
 import { formatDate } from "../utils/formatDate";
 import { usePromise } from "../utils/usePromise";
-import { useEnvironment } from "../root/KeycloakContext";
 
 type MobileLinkProps = {
   title: string;
@@ -42,21 +41,31 @@ const MobileLink = ({ title, onClick, testid }: MobileLinkProps) => {
   return (
     <>
       <Dropdown
-        isPlain
-        position="right"
-        toggle={<KebabToggle onToggle={setOpen} />}
-        className="pf-u-display-none-on-lg"
+        popperProps={{
+          position: "right",
+        }}
+        onOpenChange={(isOpen) => setOpen(isOpen)}
+        toggle={(toggleRef) => (
+          <MenuToggle
+            className="pf-v5-u-display-none-on-lg"
+            ref={toggleRef}
+            variant="plain"
+            onClick={() => setOpen(!open)}
+            isExpanded={open}
+          >
+            <EllipsisVIcon />
+          </MenuToggle>
+        )}
         isOpen={open}
-        dropdownItems={[
-          <DropdownItem key="1" onClick={onClick}>
-            {title}
-          </DropdownItem>,
-        ]}
-      />
+      >
+        <DropdownItem key="1" onClick={onClick}>
+          {title}
+        </DropdownItem>
+      </Dropdown>
       <Button
         variant="link"
         onClick={onClick}
-        className="pf-u-display-none pf-u-display-inline-flex-on-lg"
+        className="pf-v5-u-display-none pf-v5-u-display-inline-flex-on-lg"
         data-testid={testid}
       >
         {title}
@@ -68,27 +77,28 @@ const MobileLink = ({ title, onClick, testid }: MobileLinkProps) => {
 export const SigningIn = () => {
   const { t } = useTranslation();
   const context = useEnvironment();
-  const { addAlert, addError } = useAlerts();
   const { login } = context.keycloak;
 
   const [credentials, setCredentials] = useState<CredentialContainer[]>();
-  const [key, setKey] = useState(1);
-  const refresh = () => setKey(key + 1);
 
-  usePromise((signal) => getCredentials({ signal, context }), setCredentials, [
-    key,
-  ]);
+  usePromise(
+    (signal) => getCredentials({ signal, context }),
+    setCredentials,
+    [],
+  );
 
   const credentialRowCells = (
     credMetadata: CredentialMetadataRepresentation,
   ) => {
     const credential = credMetadata.credential;
-    const maxWidth = { "--pf-u-max-width--MaxWidth": "300px" } as CSSProperties;
+    const maxWidth = {
+      "--pf-v5-u-max-width--MaxWidth": "300px",
+    } as CSSProperties;
     const items = [
       <DataListCell
         key="title"
         data-testrole="label"
-        className="pf-u-max-width"
+        className="pf-v5-u-max-width"
         style={maxWidth}
       >
         {credential.userLabel || t(credential.type as TFuncKey)}
@@ -102,7 +112,7 @@ export const SigningIn = () => {
           data-testrole="created-at"
         >
           <Trans i18nKey="credentialCreatedAt">
-            <strong className="pf-u-mr-md"></strong>
+            <strong className="pf-v5-u-mr-md"></strong>
             {{ date: formatDate(new Date(credential.createdDate)) }}
           </Trans>
         </DataListCell>,
@@ -110,9 +120,6 @@ export const SigningIn = () => {
     }
     return items;
   };
-
-  const label = (credential: CredentialRepresentation) =>
-    credential.userLabel || t(credential.type as TFuncKey);
 
   if (!credentials) {
     return <Spinner />;
@@ -125,7 +132,7 @@ export const SigningIn = () => {
   return (
     <Page title={t("signingIn")} description={t("signingInDescription")}>
       {credentialUniqueCategories.map((category) => (
-        <PageSection key={category} variant="light" className="pf-u-px-0">
+        <PageSection key={category} variant="light" className="pf-v5-u-px-0">
           <Title headingLevel="h2" size="xl" id={`${category}-categ-title`}>
             {t(category as TFuncKey)}
           </Title>
@@ -133,16 +140,16 @@ export const SigningIn = () => {
             .filter((cred) => cred.category == category)
             .map((container) => (
               <>
-                <Split className="pf-u-mt-lg pf-u-mb-lg">
+                <Split className="pf-v5-u-mt-lg pf-v5-u-mb-lg">
                   <SplitItem>
                     <Title
                       headingLevel="h3"
                       size="md"
-                      className="pf-u-mb-md"
+                      className="pf-v5-u-mb-md"
                       data-testid={`${container.type}/help`}
                     >
                       <span
-                        className="cred-title pf-u-display-block"
+                        className="cred-title pf-v5-u-display-block"
                         data-testid={`${container.type}/title`}
                       >
                         {t(container.displayName as TFuncKey)}
@@ -154,7 +161,7 @@ export const SigningIn = () => {
                   </SplitItem>
                   {container.createAction && (
                     <SplitItem isFilled>
-                      <div className="pf-u-float-right">
+                      <div className="pf-v5-u-float-right">
                         <MobileLink
                           onClick={() =>
                             login({
@@ -175,7 +182,7 @@ export const SigningIn = () => {
 
                 <DataList
                   aria-label="credential list"
-                  className="pf-u-mb-xl"
+                  className="pf-v5-u-mb-xl"
                   data-testid={`${container.type}/credential-list`}
                 >
                   {container.userCredentialMetadatas.length === 0 && (
@@ -191,7 +198,7 @@ export const SigningIn = () => {
                     <DataListItem key={meta.credential.id}>
                       <DataListItemRow id={`cred-${meta.credential.id}`}>
                         <DataListItemCells
-                          className="pf-u-py-0"
+                          className="pf-v5-u-py-0"
                           dataListCells={[
                             ...credentialRowCells(meta),
                             <DataListAction
@@ -201,41 +208,19 @@ export const SigningIn = () => {
                               aria-labelledby={`cred-${meta.credential.id}`}
                             >
                               {container.removeable ? (
-                                <ContinueCancelModal
-                                  buttonTitle={t("delete")}
-                                  buttonTestRole="remove"
-                                  modalTitle={t("removeCred", {
-                                    name: label(meta.credential),
-                                  })}
-                                  continueLabel={t("confirm")}
-                                  cancelLabel={t("cancel")}
-                                  buttonVariant="danger"
-                                  onContinue={async () => {
-                                    try {
-                                      await deleteCredentials(
-                                        context,
-                                        meta.credential,
-                                      );
-                                      addAlert(
-                                        t("successRemovedMessage", {
-                                          userLabel: label(meta.credential),
-                                        }),
-                                      );
-                                      refresh();
-                                    } catch (error) {
-                                      addError(
-                                        t("errorRemovedMessage", {
-                                          userLabel: label(meta.credential),
-                                          error,
-                                        }).toString(),
-                                      );
-                                    }
+                                <Button
+                                  variant="danger"
+                                  data-testrole="remove"
+                                  onClick={() => {
+                                    login({
+                                      action:
+                                        "delete_credential:" +
+                                        meta.credential.id,
+                                    });
                                   }}
                                 >
-                                  {t("stopUsingCred", {
-                                    name: label(meta.credential),
-                                  })}
-                                </ContinueCancelModal>
+                                  {t("delete")}
+                                </Button>
                               ) : (
                                 <Button
                                   variant="secondary"

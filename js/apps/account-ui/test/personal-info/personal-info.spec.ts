@@ -30,7 +30,7 @@ test.describe("Personal info page", () => {
   });
 });
 
-test.describe("Personal info with userprofile enabled", async () => {
+test.describe("Personal info with userprofile enabled", () => {
   let user: string;
   test.beforeAll(async () => {
     await importUserProfile(userProfileConfig as UserProfileConfig, realm);
@@ -54,7 +54,38 @@ test.describe("Personal info with userprofile enabled", async () => {
 
     await expect(page.locator("#select")).toBeVisible();
     await expect(page.getByTestId("help-label-select")).toBeVisible();
-    expect(page.getByText("Alternative email")).toBeDefined();
+    await expect(page.getByText("Alternative email")).toHaveCount(1);
+    await expect(page.getByPlaceholder("Deutsch")).toHaveCount(1);
+    await page.getByTestId("help-label-email2").click();
+    await expect(page.getByText("Español")).toHaveCount(1);
+  });
+
+  test("render long select options as typeahead", async ({ page }) => {
+    await login(page, user, "jdoe", realm);
+
+    await page.getByText("Alternate Language").click();
+    await page.waitForSelector("text=Italiano");
+
+    await page.getByText("Alternate Language").click();
+    await page.locator("*:focus").press("Control+A");
+    await page.locator("*:focus").pressSequentially("S");
+    await expect(page.getByText("Italiano")).toHaveCount(0);
+    await expect(page.getByText("Slovak")).toBeVisible();
+    await expect(page.getByText('Create "S"')).toBeHidden();
+  });
+
+  test("render long list of locales as typeahead", async ({ page }) => {
+    await login(page, user, "jdoe", realm);
+
+    await page.locator("#locale").click();
+    await page.waitForSelector("text=Italiano");
+
+    await page.locator("#locale").click();
+    await page.locator("*:focus").press("Control+A");
+    await page.locator("*:focus").pressSequentially("S");
+    await expect(page.getByText("Italiano")).toHaveCount(0);
+    await expect(page.getByText("Slovak")).toBeVisible();
+    await expect(page.getByText('Create "S"')).toBeHidden();
   });
 
   test("save user profile", async ({ page }) => {
@@ -68,7 +99,7 @@ test.describe("Personal info with userprofile enabled", async () => {
       "Could not update account due to validation errors",
     );
 
-    await expect(page.locator("#email2-helper")).toHaveText(
+    await expect(page.getByTestId("email2-helper")).toHaveText(
       "Invalid email address.",
     );
 
@@ -83,7 +114,7 @@ test.describe("Personal info with userprofile enabled", async () => {
 });
 
 // skip currently the locale is not part of the response
-test.describe.skip("Realm localization", async () => {
+test.describe.skip("Realm localization", () => {
   test.beforeAll(() => enableLocalization());
 
   test("change locale", async ({ page }) => {

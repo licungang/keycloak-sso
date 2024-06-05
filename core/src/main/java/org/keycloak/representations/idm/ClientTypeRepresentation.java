@@ -18,7 +18,6 @@
 
 package org.keycloak.representations.idm;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -61,27 +60,13 @@ public class ClientTypeRepresentation {
         this.config = config;
     }
 
-    @JsonProperty("referenced-properties")
-    protected Map<String, Object> referencedProperties = new HashMap<>();
-
-    public Map<String, Object> getReferencedProperties() {
-        return referencedProperties;
-    }
-
-    public void setReferencedProperties(Map<String, Object> referencedProperties) {
-        this.referencedProperties = referencedProperties;
-    }
-
     public static class PropertyConfig {
 
         @JsonProperty("applicable")
         private Boolean applicable;
 
-        @JsonProperty("read-only")
-        private Boolean readOnly;
-
-        @JsonProperty("default-value")
-        private Object defaultValue;
+        @JsonProperty("value")
+        private Object value;
 
         public Boolean getApplicable() {
             return applicable;
@@ -91,20 +76,13 @@ public class ClientTypeRepresentation {
             this.applicable = applicable;
         }
 
-        public Boolean getReadOnly() {
-            return readOnly;
+
+        public Object getValue() {
+            return value;
         }
 
-        public void setReadOnly(Boolean readOnly) {
-            this.readOnly = readOnly;
-        }
-
-        public Object getDefaultValue() {
-            return defaultValue;
-        }
-
-        public void setDefaultValue(Object defaultValue) {
-            this.defaultValue = defaultValue;
+        public void setValue(Object value) {
+            this.value = value;
         }
     }
 }

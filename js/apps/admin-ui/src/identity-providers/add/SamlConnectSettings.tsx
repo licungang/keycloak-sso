@@ -3,11 +3,16 @@ import type IdentityProviderRepresentation from "@keycloak/keycloak-admin-client
 import { FormGroup, Title } from "@patternfly/react-core";
 import { useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { HelpItem, TextControl } from "ui-shared";
-import { adminClient } from "../../admin-client";
+import {
+  AdminEnvironment,
+  FormErrorText,
+  HelpItem,
+  TextControl,
+  useEnvironment,
+} from "@keycloak/keycloak-ui-shared";
+import { useAdminClient } from "../../admin-client";
 import { FileUploadForm } from "../../components/json-file-upload/FileUploadForm";
 import { useRealm } from "../../context/realm-context/RealmContext";
-import environment from "../../environment";
 import { addTrailingSlash } from "../../util";
 import { getAuthorizationHeaders } from "../../utils/getAuthorizationHeaders";
 import { DiscoveryEndpointField } from "../component/DiscoveryEndpointField";
@@ -18,6 +23,9 @@ type FormFields = IdentityProviderRepresentation & {
 };
 
 export const SamlConnectSettings = () => {
+  const { adminClient } = useAdminClient();
+  const { environment } = useEnvironment<AdminEnvironment>();
+
   const { t } = useTranslation();
   const id = "saml";
 
@@ -100,8 +108,6 @@ export const SamlConnectSettings = () => {
                 fieldLabelId="importConfig"
               />
             }
-            validated={errors.discoveryError ? "error" : "default"}
-            helperTextInvalid={errors.discoveryError?.message}
           >
             <FileUploadForm
               id="kc-import-config"
@@ -111,6 +117,11 @@ export const SamlConnectSettings = () => {
               validated={errors.discoveryError ? "error" : "default"}
               onChange={(value) => fileUpload(value)}
             />
+            {errors.discoveryError && (
+              <FormErrorText
+                message={errors.discoveryError.message as string}
+              />
+            )}
           </FormGroup>
         }
       >

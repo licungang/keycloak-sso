@@ -1,12 +1,11 @@
 import {
-  FormGroup,
-  Select,
-  SelectOption,
-  SelectVariant,
-  Switch,
-} from "@patternfly/react-core";
+  HelpItem,
+  SelectControl,
+  TextControl,
+} from "@keycloak/keycloak-ui-shared";
+import { FormGroup, Switch } from "@patternfly/react-core";
 import { isEqual } from "lodash-es";
-import { useState } from "react";
+import { useEffect } from "react";
 import {
   Controller,
   FormProvider,
@@ -14,13 +13,9 @@ import {
   useWatch,
 } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { HelpItem, TextControl } from "ui-shared";
-import { adminClient } from "../../admin-client";
 import { FormAccess } from "../../components/form/FormAccess";
-import { KeycloakTextInput } from "../../components/keycloak-text-input/KeycloakTextInput";
 import { WizardSectionHeader } from "../../components/wizard-section-header/WizardSectionHeader";
 import { useRealm } from "../../context/realm-context/RealmContext";
-import { useFetch } from "../../utils/useFetch";
 
 export type KerberosSettingsRequiredProps = {
   form: UseFormReturn;
@@ -34,21 +29,14 @@ export const KerberosSettingsRequired = ({
   showSectionDescription = false,
 }: KerberosSettingsRequiredProps) => {
   const { t } = useTranslation();
-
-  const { realm } = useRealm();
-
-  const [isEditModeDropdownOpen, setIsEditModeDropdownOpen] = useState(false);
+  const { realm, realmRepresentation } = useRealm();
 
   const allowPassAuth = useWatch({
     control: form.control,
     name: "config.allowPasswordAuthentication",
   });
 
-  useFetch(
-    () => adminClient.realms.findOne({ realm }),
-    (result) => form.setValue("parentId", result!.id),
-    [],
-  );
+  useEffect(() => form.setValue("parentId", realmRepresentation?.id), []);
 
   return (
     <FormProvider {...form}>
@@ -63,18 +51,18 @@ export const KerberosSettingsRequired = ({
       {/* Required settings */}
       <FormAccess role="manage-realm" isHorizontal>
         {/* These hidden fields are required so data object written back matches data retrieved */}
-        <KeycloakTextInput
-          hidden
+        <input
+          type="hidden"
           defaultValue="kerberos"
           {...form.register("providerId")}
         />
-        <KeycloakTextInput
-          hidden
+        <input
+          type="hidden"
           defaultValue="org.keycloak.storage.UserStorageProvider"
           {...form.register("providerType")}
         />
-        <KeycloakTextInput
-          hidden
+        <input
+          type="hidden"
           defaultValue={realm}
           {...form.register("parentId")}
         />
@@ -126,7 +114,7 @@ export const KerberosSettingsRequired = ({
               <Switch
                 id={"kc-debug"}
                 data-testid="debug"
-                onChange={(value) => field.onChange([`${value}`])}
+                onChange={(_event, value) => field.onChange([`${value}`])}
                 isChecked={field.value?.[0] === "true"}
                 label={t("on")}
                 labelOff={t("off")}
@@ -154,7 +142,7 @@ export const KerberosSettingsRequired = ({
               <Switch
                 id={"kc-allow-password-authentication"}
                 data-testid="allow-password-authentication"
-                onChange={(value) => field.onChange([`${value}`])}
+                onChange={(_event, value) => field.onChange([`${value}`])}
                 isChecked={field.value?.[0] === "true"}
                 label={t("on")}
                 labelOff={t("off")}
@@ -164,43 +152,16 @@ export const KerberosSettingsRequired = ({
           />
         </FormGroup>
         {isEqual(allowPassAuth, ["true"]) ? (
-          <FormGroup
+          <SelectControl
+            name="config.editMode[0]"
             label={t("editMode")}
-            labelIcon={
-              <HelpItem
-                helpText={t("editModeKerberosHelp")}
-                fieldLabelId="editMode"
-              />
-            }
-            isRequired
-            fieldId="kc-edit-mode"
-          >
-            <Controller
-              name="config.editMode[0]"
-              defaultValue="READ_ONLY"
-              control={form.control}
-              rules={{ required: true }}
-              render={({ field }) => (
-                <Select
-                  toggleId="kc-edit-mode"
-                  required
-                  onToggle={() =>
-                    setIsEditModeDropdownOpen(!isEditModeDropdownOpen)
-                  }
-                  isOpen={isEditModeDropdownOpen}
-                  onSelect={(_, value) => {
-                    field.onChange(value as string);
-                    setIsEditModeDropdownOpen(false);
-                  }}
-                  selections={field.value}
-                  variant={SelectVariant.single}
-                >
-                  <SelectOption key={0} value="READ_ONLY" isPlaceholder />
-                  <SelectOption key={1} value="UNSYNCED" />
-                </Select>
-              )}
-            ></Controller>
-          </FormGroup>
+            labelIcon={t("editModeKerberosHelp")}
+            controller={{
+              rules: { required: t("required") },
+              defaultValue: "READ_ONLY",
+            }}
+            options={["READ_ONLY", "UNSYNCED"]}
+          />
         ) : null}
         <FormGroup
           label={t("updateFirstLogin")}
@@ -221,7 +182,7 @@ export const KerberosSettingsRequired = ({
               <Switch
                 id={"kc-update-first-login"}
                 data-testid="update-first-login"
-                onChange={(value) => field.onChange([`${value}`])}
+                onChange={(_event, value) => field.onChange([`${value}`])}
                 isChecked={field.value?.[0] === "true"}
                 label={t("on")}
                 labelOff={t("off")}

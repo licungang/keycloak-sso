@@ -1,14 +1,24 @@
 import { ActionGroup, Button, PageSection } from "@patternfly/react-core";
-import { SubmitHandler, useFormContext, useWatch } from "react-hook-form";
+import {
+  SubmitHandler,
+  UseFormReturn,
+  useFormContext,
+  useWatch,
+} from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Link, To } from "react-router-dom";
-import { TextAreaControl, TextControl } from "ui-shared";
+import {
+  FormSubmitButton,
+  TextAreaControl,
+  TextControl,
+} from "@keycloak/keycloak-ui-shared";
 
 import { FormAccess } from "../form/FormAccess";
 import { AttributeForm } from "../key-value-form/AttributeForm";
 import { ViewHeader } from "../view-header/ViewHeader";
 
 export type RoleFormProps = {
+  form: UseFormReturn<AttributeForm>;
   onSubmit: SubmitHandler<AttributeForm>;
   cancelLink: To;
   role: "manage-realm" | "manage-clients";
@@ -16,6 +26,7 @@ export type RoleFormProps = {
 };
 
 export const RoleForm = ({
+  form: { formState },
   onSubmit,
   cancelLink,
   role,
@@ -38,7 +49,7 @@ export const RoleForm = ({
           isHorizontal
           onSubmit={handleSubmit(onSubmit)}
           role={role}
-          className="pf-u-mt-lg"
+          className="pf-v5-u-mt-lg"
         >
           <TextControl
             name="name"
@@ -51,7 +62,7 @@ export const RoleForm = ({
                 }
               },
             }}
-            readOnly={editMode}
+            isDisabled={editMode}
           />
           <TextAreaControl
             name="description"
@@ -65,9 +76,14 @@ export const RoleForm = ({
             isDisabled={roleName?.includes("default-roles") ?? false}
           />
           <ActionGroup>
-            <Button data-testid="save" type="submit" variant="primary">
+            <FormSubmitButton
+              formState={formState}
+              data-testid="save"
+              allowInvalid
+              allowNonDirty
+            >
               {t("save")}
-            </Button>
+            </FormSubmitButton>
             <Button
               data-testid="cancel"
               variant="link"

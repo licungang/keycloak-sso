@@ -1,8 +1,8 @@
-import type RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
 import type {
   UserProfileAttribute,
   UserProfileConfig,
 } from "@keycloak/keycloak-admin-client/lib/defs/userProfileMetadata";
+import { ScrollForm } from "@keycloak/keycloak-ui-shared";
 import {
   AlertVariant,
   Button,
@@ -14,14 +14,16 @@ import { useState } from "react";
 import { FormProvider, useForm, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-import { ScrollForm } from "ui-shared";
-import { adminClient } from "../admin-client";
+import { useAdminClient } from "../admin-client";
 import { useAlerts } from "../components/alert/Alerts";
 import { FixedButtonsGroup } from "../components/form/FixedButtonGroup";
 import { ViewHeader } from "../components/view-header/ViewHeader";
+import { useRealm } from "../context/realm-context/RealmContext";
 import { convertToFormValues } from "../util";
 import { useFetch } from "../utils/useFetch";
+import useLocale from "../utils/useLocale";
 import { useParams } from "../utils/useParams";
+import "./realm-settings-section.css";
 import type { AttributeParams } from "./routes/Attribute";
 import { toUserProfile } from "./routes/UserProfile";
 import { UserProfileProvider } from "./user-profile/UserProfileContext";
@@ -29,8 +31,6 @@ import { AttributeAnnotations } from "./user-profile/attribute/AttributeAnnotati
 import { AttributeGeneralSettings } from "./user-profile/attribute/AttributeGeneralSettings";
 import { AttributePermission } from "./user-profile/attribute/AttributePermission";
 import { AttributeValidations } from "./user-profile/attribute/AttributeValidations";
-
-import "./realm-settings-section.css";
 
 type TranslationForm = {
   locale: string;
@@ -155,9 +155,12 @@ const CreateAttributeFormContent = ({
 };
 
 export default function NewAttributeSettings() {
+  const { adminClient } = useAdminClient();
   const { realm: realmName, attributeName } = useParams<AttributeParams>();
+  const { realmRepresentation: realm } = useRealm();
   const form = useForm<UserProfileAttributeFormFields>();
   const { t } = useTranslation();
+  const combinedLocales = useLocale();
   const navigate = useNavigate();
   const { addAlert, addError } = useAlerts();
   const [config, setConfig] = useState<UserProfileConfig | null>(null);
@@ -167,17 +170,69 @@ export default function NewAttributeSettings() {
     translations: [],
   });
   const [generatedDisplayName, setGeneratedDisplayName] = useState<string>("");
-  const [realm, setRealm] = useState<RealmRepresentation>();
 
   useFetch(
-    () => adminClient.realms.findOne({ realm: realmName }),
-    (realm) => {
-      if (!realm) {
-        throw new Error(t("notFound"));
-      }
-      setRealm(realm);
+    async () => {
+      const translationsToSave: any[] = [];
+      await Promise.all(
+        combinedLocales.map(async (selectedLocale) => {
+          try {
+            const translations =
+              await adminClient.realms.getRealmLocalizationTexts({
+                realm: realmName,
+                selectedLocale,
+              });
+
+            const formData = form.getValues();
+            const formattedKey = formData.displayName?.substring(
+              2,
+              formData.displayName.length - 1,
+            );
+            const filteredTranslations: Array<{
+              locale: string;
+              value: string;
+            }> = [];
+            const allTranslations = Object.entries(translations).map(
+              ([key, value]) => ({
+                key,
+                value,
+              }),
+            );
+
+            allTranslations.forEach((translation) => {
+              if (translation.key === formattedKey) {
+                filteredTranslations.push({
+                  locale: selectedLocale,
+                  value: translation.value,
+                });
+              }
+            });
+
+            const translationToSave: any = {
+              key: formattedKey,
+              translations: filteredTranslations,
+            };
+
+            translationsToSave.push(translationToSave);
+          } catch (error) {
+            console.error(
+              `Error fetching translations for ${selectedLocale}:`,
+              error,
+            );
+          }
+        }),
+      );
+      return translationsToSave;
     },
-    [],
+    (translationsToSaveData) => {
+      setTranslationsData(() => ({
+        key: translationsToSaveData[0].key,
+        translations: translationsToSaveData.flatMap(
+          (translationData) => translationData.translations,
+        ),
+      }));
+    },
+    [combinedLocales],
   );
 
   useFetch(
@@ -228,9 +283,8 @@ export default function NewAttributeSettings() {
 
   const saveTranslations = async () => {
     try {
-      const nonEmptyTranslations = translationsData.translations
-        .filter((translation) => translation.value.trim() !== "")
-        .map(async (translation) => {
+      const nonEmptyTranslations = translationsData.translations.map(
+        async (translation) => {
           try {
             await adminClient.realms.addLocalization(
               {
@@ -243,7 +297,8 @@ export default function NewAttributeSettings() {
           } catch (error) {
             console.error(`Error saving translation for ${translation.locale}`);
           }
-        });
+        },
+      );
       await Promise.all(nonEmptyTranslations);
     } catch (error) {
       console.error(`Error saving translations: ${error}`);

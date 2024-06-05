@@ -3,7 +3,11 @@
 <#import "register-commons.ftl" as registerCommons>
 <@layout.registrationLayout displayMessage=messagesPerField.exists('global') displayRequiredFields=true; section>
     <#if section = "header">
-        ${msg("registerTitle")}
+        <#if messageHeader??>
+            ${kcSanitize(msg("${messageHeader}"))?no_esc}
+        <#else>
+            ${msg("registerTitle")}
+        </#if>
     <#elseif section = "form">
         <form id="kc-register-form" class="${properties.kcFormClass!}" action="${url.registrationAction}" method="post">
 
@@ -16,7 +20,7 @@
                                 <span class="pf-v5-c-form__label-text">
                                     ${msg("password")}
                                     <span class="pf-v5-c-form__label-required" aria-hidden="true">&#42;</span>
-                                <span>
+                                </span>
                             </label>
                             <span class="${properties.kcInputGroup!}">
                                 <span class="${properties.kcInputClass!}">

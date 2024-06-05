@@ -12,11 +12,13 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
+import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.NoCache;
 import org.keycloak.authentication.requiredactions.DeleteAccount;
 import org.keycloak.common.Profile;
@@ -88,7 +90,8 @@ public class AccountConsole implements AccountResourceProvider {
     }
 
     @Override
-    public void close() {}
+    public void close() {
+    }
 
     @GET
     @NoCache
@@ -138,7 +141,7 @@ public class AccountConsole implements AccountResourceProvider {
         map.put("isAuthorizationEnabled", Profile.isFeatureEnabled(Profile.Feature.AUTHORIZATION));
 
         boolean deleteAccountAllowed = false;
-        boolean isViewGroupsEnabled= false;
+        boolean isViewGroupsEnabled = false;
         if (user != null) {
             RoleModel deleteAccountRole = realm.getClientByClientId(Constants.ACCOUNT_MANAGEMENT_CLIENT_ID).getRole(AccountRoles.DELETE_ACCOUNT);
             deleteAccountAllowed = deleteAccountRole != null && user.hasRole(deleteAccountRole) && realm.getRequiredActionProviderByAlias(DeleteAccount.PROVIDER_ID).isEnabled();
@@ -149,6 +152,7 @@ public class AccountConsole implements AccountResourceProvider {
         map.put("deleteAccountAllowed", deleteAccountAllowed);
 
         map.put("isViewGroupsEnabled", isViewGroupsEnabled);
+        map.put("isOid4VciEnabled", Profile.isFeatureEnabled(Profile.Feature.OID4VC_VCI));
 
         map.put("updateEmailFeatureEnabled", Profile.isFeatureEnabled(Profile.Feature.UPDATE_EMAIL));
         RequiredActionProviderModel updateEmailActionProvider = realm.getRequiredActionProviderByAlias(UserModel.RequiredAction.UPDATE_EMAIL.name());
@@ -159,16 +163,16 @@ public class AccountConsole implements AccountResourceProvider {
         Response.ResponseBuilder builder = Response.status(Response.Status.OK).type(MediaType.TEXT_HTML_UTF_8).language(Locale.ENGLISH).entity(result);
         return builder.build();
     }
-    
+
     private Map<String, String> supportedLocales(Properties messages) {
         return realm.getSupportedLocalesStream()
                 .collect(Collectors.toMap(Function.identity(), l -> messages.getProperty("locale_" + l, l)));
     }
-    
+
     private String messagesToJsonString(Properties props) {
         if (props == null) return "";
         Properties newProps = new Properties();
-        for (String prop: props.stringPropertyNames()) {
+        for (String prop : props.stringPropertyNames()) {
             newProps.put(prop, convertPropValue(props.getProperty(prop)));
         }
         try {
@@ -177,7 +181,7 @@ public class AccountConsole implements AccountResourceProvider {
             throw new RuntimeException(e);
         }
     }
-    
+
     private String convertPropValue(String propertyValue) {
         // this mimics the behavior of java.text.MessageFormat used for the freemarker templates:
         // To print a single quote one needs to write two single quotes.
@@ -188,7 +192,7 @@ public class AccountConsole implements AccountResourceProvider {
 
         return propertyValue;
     }
-    
+
     // Put java resource bundle params in ngx-translate format
     // Do you like {0} and {1} ?
     //    becomes
@@ -201,40 +205,45 @@ public class AccountConsole implements AccountResourceProvider {
 
         return propertyValue;
     }
-    
+
     @GET
     @Path("index.html")
     public Response getIndexHtmlRedirect() {
         return Response.status(302).location(session.getContext().getUri().getRequestUriBuilder().path("../").build()).build();
     }
 
-
     private String[] getReferrer() {
         String referrer = session.getContext().getUri().getQueryParameters().getFirst("referrer");
+
         if (referrer == null) {
+            return null;
+        }
+
+        ClientModel referrerClient = realm.getClientByClientId(referrer);
+
+        if (referrerClient == null) {
             return null;
         }
 
         String referrerUri = session.getContext().getUri().getQueryParameters().getFirst("referrer_uri");
 
-        ClientModel referrerClient = realm.getClientByClientId(referrer);
-        if (referrerClient != null) {
-            if (referrerUri != null) {
-                referrerUri = RedirectUtils.verifyRedirectUri(session, referrerUri, referrerClient);
-            } else {
-                referrerUri = ResolveRelative.resolveRelativeUri(session, referrerClient.getRootUrl(), referrerClient.getBaseUrl());
-            }
-            
-            if (referrerUri != null) {
-                String referrerName = referrerClient.getName();
-                if (Validation.isBlank(referrerName)) {
-                    referrerName = referrer;
-                }
-                return new String[]{referrer, referrerName, referrerUri};
-            }
+        if (referrerUri != null) {
+            referrerUri = RedirectUtils.verifyRedirectUri(session, referrerUri, referrerClient);
+        } else {
+            referrerUri = ResolveRelative.resolveRelativeUri(session, referrerClient.getRootUrl(), referrerClient.getBaseUrl());
         }
 
-        return null;
+        if (referrerUri == null) {
+            return null;
+        }
+
+        String referrerName = referrerClient.getName();
+
+        if (Validation.isBlank(referrerName)) {
+            referrerName = referrer;
+        }
+
+        return new String[]{referrer, referrerName, referrerUri};
     }
 
 }

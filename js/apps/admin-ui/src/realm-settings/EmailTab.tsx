@@ -15,11 +15,11 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
   FormPanel,
+  PasswordControl,
   SwitchControl,
   TextControl,
-  PasswordControl,
-} from "ui-shared";
-import { adminClient } from "../admin-client";
+} from "@keycloak/keycloak-ui-shared";
+import { useAdminClient } from "../admin-client";
 import { useAlerts } from "../components/alert/Alerts";
 import { FormAccess } from "../components/form/FormAccess";
 import { useRealm } from "../context/realm-context/RealmContext";
@@ -41,6 +41,8 @@ export const RealmSettingsEmailTab = ({
   realm,
   save,
 }: RealmSettingsEmailTabProps) => {
+  const { adminClient } = useAdminClient();
+
   const { t } = useTranslation();
   const { realm: realmName } = useRealm();
   const { addAlert, addError } = useAlerts();
@@ -99,7 +101,7 @@ export const RealmSettingsEmailTab = ({
           <FormAccess
             isHorizontal
             role="manage-realm"
-            className="pf-u-mt-lg"
+            className="pf-v5-u-mt-lg"
             onSubmit={handleSubmit(save)}
           >
             <TextControl
@@ -154,7 +156,7 @@ export const RealmSettingsEmailTab = ({
           <FormAccess
             isHorizontal
             role="manage-realm"
-            className="pf-u-mt-lg"
+            className="pf-v5-u-mt-lg"
             onSubmit={handleSubmit(save)}
           >
             <TextControl
@@ -180,7 +182,7 @@ export const RealmSettingsEmailTab = ({
                     data-testid="enable-ssl"
                     label={t("enableSSL")}
                     isChecked={field.value === "true"}
-                    onChange={(value) => field.onChange("" + value)}
+                    onChange={(_event, value) => field.onChange("" + value)}
                   />
                 )}
               />
@@ -194,7 +196,7 @@ export const RealmSettingsEmailTab = ({
                     data-testid="enable-start-tls"
                     label={t("enableStartTLS")}
                     isChecked={field.value === "true"}
-                    onChange={(value) => field.onChange("" + value)}
+                    onChange={(_event, value) => field.onChange("" + value)}
                   />
                 )}
               />
@@ -205,6 +207,7 @@ export const RealmSettingsEmailTab = ({
               defaultValue=""
               labelOn={t("enabled")}
               labelOff={t("disabled")}
+              stringify
             />
             {authenticationEnabled === "true" && (
               <>

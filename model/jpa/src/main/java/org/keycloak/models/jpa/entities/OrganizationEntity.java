@@ -17,26 +17,49 @@
 
 package org.keycloak.models.jpa.entities;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 import jakarta.persistence.Access;
 import jakarta.persistence.AccessType;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
-@Table(name="ORGANIZATION")
+@Table(name="ORG")
 @Entity
 @NamedQueries({
-        @NamedQuery(name="getByRealm", query="select o from OrganizationEntity o where o.realmId = :realmId")
+        @NamedQuery(name="getByRealm", query="select o from OrganizationEntity o where o.realmId = :realmId order by o.name ASC"),
+        @NamedQuery(name="getByOrgName", query="select distinct o from OrganizationEntity o where o.realmId = :realmId AND o.name = :name"),
+        @NamedQuery(name="getByDomainName", query="select distinct o from OrganizationEntity o inner join OrganizationDomainEntity d ON o.id = d.organization.id" +
+                " where o.realmId = :realmId AND d.name = :name"),
+        @NamedQuery(name="getByNameOrDomain", query="select distinct o from OrganizationEntity o inner join OrganizationDomainEntity d ON o.id = d.organization.id" +
+                " where o.realmId = :realmId AND (o.name = :search OR d.name = :search) order by o.name ASC"),
+        @NamedQuery(name="getByNameOrDomainContained", query="select distinct o from OrganizationEntity o inner join OrganizationDomainEntity d ON o.id = d.organization.id" +
+                " where o.realmId = :realmId AND (lower(o.name) like concat('%',:search,'%') OR d.name like concat('%',:search,'%')) order by o.name ASC"),
+        @NamedQuery(name="getCount", query="select count(o) from OrganizationEntity o where o.realmId = :realmId")
 })
 public class OrganizationEntity {
 
     @Id
-    @Column(name="ID", length = 36)
+    @Column(name = "ID", length = 36)
     @Access(AccessType.PROPERTY)
-    protected String id;
+    private String id;
+
+    @Column(name = "NAME")
+    private String name;
+
+    @Column(name = "ENABLED")
+    private boolean enabled;
+
+    @Column(name = "DESCRIPTION")
+    private String description;
 
     @Column(name = "REALM_ID")
     private String realmId;
@@ -44,8 +67,8 @@ public class OrganizationEntity {
     @Column(name = "GROUP_ID")
     private String groupId;
 
-    @Column(name="NAME")
-    protected String name;
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy="organization")
+    protected Set<OrganizationDomainEntity> domains = new HashSet<>();
 
     public String getId() {
         return id;
@@ -53,6 +76,26 @@ public class OrganizationEntity {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public boolean isEnabled() {
+        return this.enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public String getDescription() {
+        return this.description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getRealmId() {
@@ -75,8 +118,19 @@ public class OrganizationEntity {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public Collection<OrganizationDomainEntity> getDomains() {
+        if (this.domains == null) {
+            this.domains = new HashSet<>();
+        }
+        return this.domains;
+    }
+
+    public void addDomain(OrganizationDomainEntity domainEntity) {
+        this.domains.add(domainEntity);
+    }
+
+    public void removeDomain(OrganizationDomainEntity domainEntity) {
+        this.domains.remove(domainEntity);
     }
 
     @Override

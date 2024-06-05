@@ -52,7 +52,7 @@ import org.wildfly.extras.creaper.core.online.operations.admin.Administration;
  *
  * @author <a href="mailto:psilva@redhat.com">Pedro Igor</a>
  */
-@AppServerContainer(ContainerConstants.APP_SERVER_EAP71)
+@AppServerContainer(ContainerConstants.APP_SERVER_EAP8)
 public class ConsoleProtectionTest extends AbstractAdapterTest {
 
     @Page
@@ -77,8 +77,6 @@ public class ConsoleProtectionTest extends AbstractAdapterTest {
 
     @Before
     public void beforeConsoleProtectionTest() throws IOException, OperationException {
-        Assume.assumeTrue("This testClass doesn't work with phantomjs", !"phantomjs".equals(System.getProperty("js.browser")));
-
         try (OnlineManagementClient clientWorkerNodeClient = AppServerTestEnricher.getManagementClient()) {
 
             Operations operations = new Operations(clientWorkerNodeClient);

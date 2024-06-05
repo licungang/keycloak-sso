@@ -18,7 +18,7 @@ import {
 } from "@patternfly/react-core";
 
 import type KeyStoreConfig from "@keycloak/keycloak-admin-client/lib/defs/keystoreConfig";
-import { HelpItem, SelectControl } from "ui-shared";
+import { HelpItem, SelectControl } from "@keycloak/keycloak-ui-shared";
 import { StoreSettings } from "./StoreSettings";
 import { FileUpload } from "../../components/json-file-upload/patternfly/FileUpload";
 import { useServerInfo } from "../../context/server-info/ServerInfoProvider";
@@ -68,7 +68,7 @@ export const KeyForm = ({
   ];
 
   return (
-    <Form className="pf-u-pt-lg">
+    <Form className="pf-v5-u-pt-lg">
       <SelectControl
         name="format"
         label={t("archiveFormat")}

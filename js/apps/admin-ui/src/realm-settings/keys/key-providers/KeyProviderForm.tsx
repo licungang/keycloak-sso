@@ -8,8 +8,8 @@ import {
 import { FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { TextControl } from "ui-shared";
-import { adminClient } from "../../../admin-client";
+import { TextControl } from "@keycloak/keycloak-ui-shared";
+import { useAdminClient } from "../../../admin-client";
 import { useAlerts } from "../../../components/alert/Alerts";
 import { DynamicComponents } from "../../../components/dynamic/DynamicComponents";
 import { FormAccess } from "../../../components/form/FormAccess";
@@ -31,6 +31,8 @@ export const KeyProviderForm = ({
   providerType,
   onClose,
 }: KeyProviderFormProps) => {
+  const { adminClient } = useAdminClient();
+
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { addAlert, addError } = useAlerts();
@@ -104,7 +106,7 @@ export const KeyProviderForm = ({
           name="name"
           defaultValue={providerType}
           label={t("name")}
-          labelIcon={t("mapperNameHelp")}
+          labelIcon={t("keyProviderMapperNameHelp")}
           rules={{
             required: t("required"),
           }}

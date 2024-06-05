@@ -1,15 +1,15 @@
 import type PolicyProviderRepresentation from "@keycloak/keycloak-admin-client/lib/defs/policyProviderRepresentation";
+import { SelectControl, TextControl } from "@keycloak/keycloak-ui-shared";
 import {
   ActionGroup,
   Button,
   Dropdown,
-  DropdownToggle,
   Form,
+  MenuToggle,
 } from "@patternfly/react-core";
 import { useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { SelectControl, TextControl } from "ui-shared";
 import useToggle from "../../utils/useToggle";
 
 import "./search-dropdown.css";
@@ -55,18 +55,18 @@ export const SearchDropdown = ({
 
   return (
     <Dropdown
-      data-testid="searchdropdown_dorpdown"
-      className="pf-u-ml-md"
-      toggle={
-        <DropdownToggle
-          onToggle={toggle}
+      toggle={(ref) => (
+        <MenuToggle
+          data-testid="searchdropdown_dorpdown"
+          ref={ref}
+          onClick={toggle}
           className="keycloak__client_authentication__searchdropdown"
         >
           {type === "resource" && t("searchClientAuthorizationResource")}
           {type === "policy" && t("searchClientAuthorizationPolicy")}
           {type === "permission" && t("searchClientAuthorizationPermission")}
-        </DropdownToggle>
-      }
+        </MenuToggle>
+      )}
       isOpen={open}
     >
       <FormProvider {...form}>
