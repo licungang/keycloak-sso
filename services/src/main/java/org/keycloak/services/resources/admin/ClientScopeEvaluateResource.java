@@ -275,7 +275,7 @@ public class ClientScopeEvaluateResource {
     }
 
     /**
-     * Create JSON with payload of example access token
+     * Create SAMLResponse for the given user and the current client.
      *
      * @return
      */
