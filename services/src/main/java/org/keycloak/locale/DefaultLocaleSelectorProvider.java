@@ -81,6 +81,10 @@ public class DefaultLocaleSelectorProvider implements LocaleSelectorProvider {
             return locale;
         }
 
+        if(themeType != null && themeType.equals(Theme.Type.EMAIL)) {
+            return null;
+        }
+
         locale = getClientSelectedLocale(realm, session);
         if (locale != null) {
             return locale;
@@ -91,7 +95,7 @@ public class DefaultLocaleSelectorProvider implements LocaleSelectorProvider {
             return locale;
         }
 
-        locale = getAcceptLanguageHeaderLocale(realm, requestHeaders, themeType);
+        locale = getAcceptLanguageHeaderLocale(realm, requestHeaders);
         if (locale != null) {
             return locale;
         }
@@ -147,11 +151,7 @@ public class DefaultLocaleSelectorProvider implements LocaleSelectorProvider {
         return findLocale(realm, localeCookie);
     }
 
-    private Locale getAcceptLanguageHeaderLocale(RealmModel realm, HttpHeaders httpHeaders, Theme.Type themeType) {
-        if(themeType != null && themeType.equals(Theme.Type.EMAIL)) {
-            return null;
-        }
-
+    private Locale getAcceptLanguageHeaderLocale(RealmModel realm, HttpHeaders httpHeaders) {
         if (httpHeaders == null) {
             return null;
         }
