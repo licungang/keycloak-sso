@@ -178,6 +178,14 @@ export const ScopeForm = ({ clientScope, save }: ScopeFormProps) => {
           labelIcon={t("includeInTokenScopeHelp")}
           stringify
         />
+        <DefaultSwitchControl
+           name={convertAttributeNameToForm<ClientScopeDefaultOptionalType>(
+              "attributes.hide.from.openID.provider.metadata",
+           )}
+           label={t("hideFromOpenIDProviderMetadata")}
+           labelIcon={t("hideFromOpenIDProviderMetadataHelp")}
+           stringify
+        />
         <TextControl
           name={convertAttributeNameToForm<ClientScopeDefaultOptionalType>(
             "attributes.gui.order",
