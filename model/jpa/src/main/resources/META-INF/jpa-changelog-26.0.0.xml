@@ -28,4 +28,11 @@
         <addUniqueConstraint tableName="ORG" columnNames="REALM_ID, ALIAS" constraintName="UK_ORG_ALIAS"/>
     </changeSet>
 
+    <changeSet author="keycloak" id="26.0.0-51321">
+        <createIndex tableName="EVENT_ENTITY" indexName="IDX_EVENT_ENTITY_USER_ID_TYPE">
+            <column name="USER_ID" type="VARCHAR(255)" />
+            <column name="TYPE" type="VARCHAR(255)" />
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>
