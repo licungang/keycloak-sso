@@ -22,9 +22,8 @@ import java.math.BigInteger;
 import javax.naming.ldap.Control;
 
 import org.jboss.logging.Logger;
-import org.wildfly.security.asn1.ASN1;
-import org.wildfly.security.asn1.ASN1Exception;
-import org.wildfly.security.asn1.DERDecoder;
+import org.keycloak.storage.ldap.idm.store.ldap.BERDecoder;
+
 
 /**
  * Implements (parts of) draft-behera-ldap-password-policy
@@ -61,20 +60,19 @@ public class PasswordPolicyControl implements Control {
      */
 
     PasswordPolicyControl(byte[] encodedValue) {
-        DERDecoder der = new DERDecoder(encodedValue);
+        BERDecoder ber = new BERDecoder(encodedValue);
 
         try {
-            der.startSequence(); // PasswordPolicyResponseValue ::= SEQUENCE
-            if (der.isNextType(ASN1.CONTEXT_SPECIFIC_MASK, 0, false)) { // warning [0] CHOICE
-                der.skipElement();
+            ber.startSequence(); // PasswordPolicyResponseValue ::= SEQUENCE
+            if (ber.isNextTag(BERDecoder.TAG_CLASS_CONTEXT_SPECIFIC, BERDecoder.TAG_FORM_PRIMITIVE, 0)) { // warning [0] CHOICE
+                ber.skipElement();
             }
-            if (der.isNextType(ASN1.CONTEXT_SPECIFIC_MASK, 1, false)) { // error   [1] ENUMERATED
-                der.decodeImplicit(1);
-                int error = new BigInteger(der.drainElementValue()).intValue();
+            if (ber.isNextTag(BERDecoder.TAG_CLASS_CONTEXT_SPECIFIC, BERDecoder.TAG_FORM_PRIMITIVE, 1)) { // error   [1] ENUMERATED
+                int error = new BigInteger(ber.drainElementValue()).intValue();
                 this.changeAfterReset = error == ERROR_CHANGE_AFTER_RESET;
             }
-            der.endSequence();
-        } catch (ASN1Exception ignored) {
+
+        } catch (BERDecoder.DecodeException ignored) {
             logger.errorf("Failed to parse PasswordPolicyResponseValue: %s", ignored.getMessage());
         }
     }
