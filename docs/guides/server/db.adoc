@@ -132,22 +132,46 @@ The configuration can be set during a *build command* OR a *start command*:
 
 . Using a *build command* followed by an optimzed start command (recommended)
 +
+First, the minimum settings needed to connect to the database can be specified in *conf/keycloak.conf*:
++
 ----
-bin/kc.[sh|bat] build --db postgres --db-url-host mypostgres --db-username myuser --db-password change_me
-bin/kc.[sh|bat] start --optimized
+# The database vendor.
+db=postgres
+
+# The username of the database user.
+db-username=myuser
+
+# The password of the database user.
+db-password=change_me
+
+# Sets the hostname of the default JDBC URL of the chosen vendor
+db-url-host=mypostgres
 ----
 +
 
-These commands include the minimum settings needed to connect to the database.
+Then, the following commands create a new and optimized server image based on the configuration options and start the server.
++
+----
+bin/kc.[sh|bat] build
+bin/kc.[sh|bat] start --optimized
+----
++
 
 . Using *only a start command* (without --optimized)
 +
 <@kc.start parameters="--db postgres --db-url-host mypostgres --db-username myuser --db-password change_me"/>
 +
 
-This command includes the minimum settings needed to connect to the database.
+This command includes the minimum settings needed to connect to the database but it exposes the database password and is not recommended.
 
-The default schema is `keycloak`, but you can change it by using the `--db-schema` configuration option.
+The default schema is `keycloak`, but you can change it by using the `db-schema` configuration option.
+
+It is also possible to configure the database when https://www.keycloak.org/server/importExport[importing or exporting Realms] or (starting with release 26):
+----
+bin/kc.[sh|bat] import --help
+bin/kc.[sh|bat] export --help
+bin/kc.[sh|bat] bootstrap-admin --help
+----
 
 For more information, see <@links.server id="configuration"/>.
 
