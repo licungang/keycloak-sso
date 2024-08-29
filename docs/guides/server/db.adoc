@@ -139,13 +139,13 @@ First, the minimum settings needed to connect to the database can be specified i
 db=postgres
 
 # The username of the database user.
-db-username=myuser
+db-username=keycloak
 
 # The password of the database user.
 db-password=change_me
 
 # Sets the hostname of the default JDBC URL of the chosen vendor
-db-url-host=mypostgres
+db-url-host=keycloak-postgres
 ----
 +
 
@@ -159,10 +159,10 @@ bin/kc.[sh|bat] start --optimized
 
 . Using *only a start command* (without --optimized)
 +
-<@kc.start parameters="--db postgres --db-url-host mypostgres --db-username myuser --db-password change_me"/>
+<@kc.start parameters="--db postgres --db-url-host keycloak-postgres --db-username keycloak --db-password change_me"/>
 +
 
-This command includes the minimum settings needed to connect to the database but it exposes the database password and is not recommended.
+This command includes the minimum settings needed to connect to the database but it exposes the database password and is not recommended. Use the `conf/keycloak.conf` as shown above, environment variables, or keystore for at least the password.
 
 The default schema is `keycloak`, but you can change it by using the `db-schema` configuration option.
 
