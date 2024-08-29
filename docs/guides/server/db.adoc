@@ -166,7 +166,7 @@ This command includes the minimum settings needed to connect to the database but
 
 The default schema is `keycloak`, but you can change it by using the `db-schema` configuration option.
 
-It is also possible to configure the database when https://www.keycloak.org/server/importExport[importing or exporting Realms] or (starting with release 26):
+It is also possible to configure the database when https://www.keycloak.org/server/importExport[importing or exporting Realms] or https://www.keycloak.org/server/bootstrap-admin-recovery[creating new Keycloak admin users / service accounts] (starting with release 26):
 ----
 bin/kc.[sh|bat] import --help
 bin/kc.[sh|bat] export --help
