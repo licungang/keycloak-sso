@@ -5,13 +5,11 @@ import org.keycloak.quarkus.runtime.Environment;
 
 import io.smallrye.config.ConfigSourceInterceptorContext;
 
-import static java.util.Optional.of;
 import static org.keycloak.quarkus.runtime.configuration.Configuration.getOptionalKcValue;
 import static org.keycloak.quarkus.runtime.configuration.mappers.PropertyMapper.fromOption;
 
 import java.io.File;
 import java.nio.file.Paths;
-import java.util.Optional;
 
 final class CachingPropertyMappers {
 
@@ -30,7 +28,14 @@ final class CachingPropertyMappers {
                         .paramLabel("stack")
                         .build(),
                 fromOption(CachingOptions.CACHE_CONFIG_FILE)
-                        .mapFrom("cache")
+                        .mapFrom(CachingOptions.CACHE, (value, context) -> {
+                            if (CachingOptions.Mechanism.local.name().equals(value)) {
+                                return "cache-local.xml";
+                            } else if (CachingOptions.Mechanism.ispn.name().equals(value)) {
+                                return "cache-ispn.xml";
+                            } else
+                                return null;
+                        })
                         .to("kc.spi-connections-infinispan-quarkus-config-file")
                         .transformer(CachingPropertyMappers::resolveConfigFile)
                         .paramLabel("file")
@@ -82,13 +87,7 @@ final class CachingPropertyMappers {
         return getOptionalKcValue(CachingOptions.CACHE_REMOTE_HOST_PROPERTY).isPresent();
     }
 
-    private static Optional<String> resolveConfigFile(Optional<String> value, ConfigSourceInterceptorContext context) {
-        if ("local".equals(value.get())) {
-            return of("cache-local.xml");
-        } else if ("ispn".equals(value.get())) {
-            return of("cache-ispn.xml");
-        }
-
+    private static String resolveConfigFile(String value, ConfigSourceInterceptorContext context) {
         String pathPrefix;
         String homeDir = Environment.getHomeDir();
 
@@ -98,7 +97,7 @@ final class CachingPropertyMappers {
             pathPrefix = homeDir + File.separator + "conf" + File.separator;
         }
 
-        return of(pathPrefix + value.get());
+        return pathPrefix + value;
     }
 
     private static String getDefaultKeystorePathValue() {

@@ -4,9 +4,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 import static java.lang.String.format;
 
