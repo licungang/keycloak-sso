@@ -1,9 +1,6 @@
 package org.keycloak.config;
 
 import java.io.File;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class CachingOptions {
 
