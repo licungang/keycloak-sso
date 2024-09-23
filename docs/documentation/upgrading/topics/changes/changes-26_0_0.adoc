@@ -300,6 +300,11 @@ The new event types are supported by the Email Event Listener.
 
 The following event types are now deprecated and will be removed in a future version: `UPDATE_PASSWORD`, `UPDATE_PASSWORD_ERROR`, `UPDATE_TOTP`, `UPDATE_TOTP_ERROR`, `REMOVE_TOTP`, `REMOVE_TOTP_ERROR`
 
+= BouncyCastle FIPS updated
+
+Our FIPS 140-2 integration is now tested and supported with version 2 of BouncyCastle FIPS libraries. This version is certified with Java 21. If you use FIPS 140-2 integration, it is recommended to
+upgrade BouncyCastle FIPS library to the versions mentioned in the latest documentation.
+
 = `setOrCreateChild()` method removed from JavaScript Admin Client
 
 The `groups.setOrCreateChild()` method has been removed from that JavaScript-based Admin Client. If you are still using this method then use the `createChildGroup()` or `updateChildGroup()` methods instead.
