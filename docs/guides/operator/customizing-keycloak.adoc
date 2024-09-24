@@ -21,6 +21,7 @@ When using the default {project_name} image, the server will perform a costly re
 To avoid this delay, you can provide a custom image with the augmentation built-in from the build time of the image.
 
 With a custom image, you can also specify the Keycloak _build-time_ configurations and extensions during the build of the container.
+Options like `health-enabled` and `metrics-enabled` are good examples of why this is sometimes necessary. By default, these options are disabled. To make these endpoints available, you can either use the `ENV` instruction in the Containerfile or specify them as parameters of the {project_name}'s `build` command.
 
 For instructions on how to build such an image, see <@links.server id="containers"/>.
 
