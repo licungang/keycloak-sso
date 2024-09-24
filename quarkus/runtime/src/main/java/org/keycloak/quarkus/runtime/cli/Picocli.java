@@ -374,7 +374,7 @@ public final class Picocli {
             if (options.includeRuntime) {
                 disabledMappers.addAll(PropertyMappers.getDisabledRuntimeMappers().values());
             }
-            
+
             checkSpiOptions(options, ignoredBuildTime, ignoredRunTime);
 
             for (OptionCategory category : abstractCommand.getOptionCategories()) {
@@ -429,7 +429,7 @@ public final class Picocli {
             Logger logger = Logger.getLogger(Picocli.class); // logger can't be instantiated in a class field
 
             if (!ignoredBuildTime.isEmpty()) {
-                logger.warn(format("The following build time options have values that differ from what is persisted - the new values will NOT be used until another build is run: %s\n",
+                throw new RuntimeException(format("The build time options have values that differ from what is persisted - perform build run with the following options: %s\n",
                         String.join(", ", ignoredBuildTime)));
             } else if (!ignoredRunTime.isEmpty()) {
                 logger.warn(format("The following run time options were found, but will be ignored during build time: %s\n",
@@ -459,7 +459,7 @@ public final class Picocli {
                 continue;
             }
             boolean buildTimeOption = key.endsWith("-provider") || key.endsWith("-provider-default") || key.endsWith("-enabled");
-            
+
             ConfigValue configValue = Configuration.getConfigValue(key);
             String configValueStr = configValue.getValue();
 
@@ -467,7 +467,7 @@ public final class Picocli {
             if (configValueStr == null || configValue.getConfigSourceOrdinal() < 300) {
                 continue;
             }
-            
+
             if (!options.includeBuildTime) {
                 if (buildTimeOption) {
                     String currentValue = getRawPersistedProperty(key).orElse(null);
