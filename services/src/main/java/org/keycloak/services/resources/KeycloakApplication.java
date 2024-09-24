@@ -151,14 +151,15 @@ public abstract class KeycloakApplication extends Application {
                 // TODO up here ^^
 
                 ApplianceBootstrap applianceBootstrap = new ApplianceBootstrap(session);
-                bootstrapState.exportImportManager = new ExportImportManager(session);
+                var exportImportManager = bootstrapState.exportImportManager = new ExportImportManager(session);
                 bootstrapState.newInstall = applianceBootstrap.isNewInstall();
                 if (bootstrapState.newInstall) {
-                    if (!(bootstrapState.exportImportManager.isRunImport() && bootstrapState.exportImportManager.isImportMasterIncluded()) 
-                        && !(getImportDirectory().filter(bootstrapState.exportImportManager::isImportMasterIncludedAtStartup).isPresent())) {
+                    boolean importingMaster = exportImportManager.isRunImport() && exportImportManager.isImportMasterIncluded();
+                    importingMaster |= getImportDirectory().filter(exportImportManager::isImportMasterIncludedAtStartup).isPresent();
+                    if (!importingMaster) {
                         applianceBootstrap.createMasterRealm();
                     }
-                    runImports(bootstrapState.exportImportManager);
+                    runImports(exportImportManager);
                     createTemporaryAdmin(session);
                 } 
             }
